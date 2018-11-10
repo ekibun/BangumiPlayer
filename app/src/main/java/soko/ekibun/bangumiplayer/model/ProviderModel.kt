@@ -3,7 +3,6 @@ package soko.ekibun.bangumiplayer.model
 import retrofit2.Call
 import soko.ekibun.bangumi.api.ApiHelper
 import soko.ekibun.bangumi.api.bangumi.bean.Episode
-import soko.ekibun.bangumi.ui.view.BackgroundWebView
 import soko.ekibun.bangumiplayer.provider.*
 
 object ProviderModel{
@@ -15,6 +14,7 @@ object ProviderModel{
             TencentProvider(),
             AcfunProvider(),
             DilidiliProvider(),
+            DililiProvider(),
             UrlProvider()
     )
 
@@ -32,13 +32,6 @@ object ProviderModel{
     fun getVideoInfo(info: ProviderInfo, video: Episode): Call<BaseProvider.VideoInfo>{
         providers.forEach {
             if(it.siteId == info.siteId) return it.getVideoInfo(info, video)
-        }
-        throw Exception("no such parser")
-    }
-
-    fun getVideo(webView: BackgroundWebView, api: String, video: BaseProvider.VideoInfo): Call<Pair<String,Map<String, String>>>{
-        providers.forEach {
-            if(it.siteId == video.siteId) return it.getVideo(webView, api, video)
         }
         throw Exception("no such parser")
     }

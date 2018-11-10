@@ -53,17 +53,6 @@ class YoukuProvider: BaseProvider {
         }
     }
 
-    override fun getVideo(webView: BackgroundWebView, api: String, video: BaseProvider.VideoInfo): Call<Pair<String,Map<String, String>>> {
-        val apis = api.split(" ")
-        var url = apis.getOrNull(0)?:""
-        val js = apis.getOrNull(1)?:""
-        if(url.isEmpty())
-            url = video.url
-        else if(url.endsWith("="))
-            url += video.url
-        return ApiHelper.buildWebViewCall(webView, url, header, js)
-    }
-
     override fun getDanmakuKey(video: BaseProvider.VideoInfo): Call<String> {
         return ApiHelper.buildHttpCall(video.url, header){
             val doc = it.body()?.string()?:""

@@ -43,26 +43,16 @@ class TencentProvider: BaseProvider {
             JsonUtil.toJsonObject(json).getAsJsonObject("PlaylistItem")
                     .getAsJsonArray("videoPlayList").map{it.asJsonObject}.forEach {
                         if(it.get("episode_number").asString.toFloatOrNull() == video.sort + info.offset && it.get("type").asString == "1"){
+                            val id = it.get("id").asString
                             val videoInfo = BaseProvider.VideoInfo(
-                                    it.get("id").asString,
+                                    id,
                                     siteId,
-                                    it.get("playUrl").asString)
+                                    it.get("playUrl").asString.split(".html?")[0] + "/$id.html")
                             Log.v("video", videoInfo.toString())
                             return@buildHttpCall videoInfo
                         } }
             throw Exception("not found")
         }
-    }
-
-    override fun getVideo(webView: BackgroundWebView, api: String, video: BaseProvider.VideoInfo): Call<Pair<String,Map<String, String>>> {
-        val apis = api.split(" ")
-        var url = apis.getOrNull(0)?:""
-        val js = apis.getOrNull(1)?:""
-        if(url.isEmpty())
-            url = video.url.split(".html?")[0] + "/${video.id}.html"
-        else if(url.endsWith("="))
-            url += video.url.split(".html?")[0] + "/${video.id}.html"
-        return ApiHelper.buildWebViewCall(webView, url, header, js)
     }
 
     override fun getDanmakuKey(video: BaseProvider.VideoInfo): Call<String> {

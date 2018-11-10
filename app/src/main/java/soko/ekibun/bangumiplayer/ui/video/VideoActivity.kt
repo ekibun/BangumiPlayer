@@ -173,7 +173,7 @@ class VideoActivity : AppCompatActivity() {
 
         private fun parseIntent(context: Context, subject: Subject, token: AccessToken?): Intent {
             val intent = Intent(context, VideoActivity::class.java)
-            intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK
+            intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
             intent.putExtra(EXTRA_SUBJECT, JsonUtil.toJson(subject))
             intent.putExtra(EXTRA_TOKEN, JsonUtil.toJson(token?: AccessToken()))
             return intent

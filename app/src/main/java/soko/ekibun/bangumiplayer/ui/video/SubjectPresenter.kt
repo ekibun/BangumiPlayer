@@ -213,6 +213,7 @@ class SubjectPresenter(private val context: VideoActivity){
                     if(info == null){
                         it.providers.removeAt(position)
                         it.defaultProvider -= if(it.defaultProvider > position) 1 else 0
+                        it.defaultProvider = Math.max(0, Math.min(it.providers.size -1, it.defaultProvider))
                     } else
                         it.providers[position] = info
                     providerInfoModel.saveInfos(subject, it)
@@ -247,7 +248,7 @@ class SubjectPresenter(private val context: VideoActivity){
                 val popList = ListPopupWindow(context)
                 popList.anchorView = context.item_lines
                 popList.width = context.root_layout.width /2
-                popList.setAdapter(SitesAdapter(context, list))
+                popList.setAdapter(ProviderAdapter(context, list))
                 popList.isModal = true
                 popList.show()
 

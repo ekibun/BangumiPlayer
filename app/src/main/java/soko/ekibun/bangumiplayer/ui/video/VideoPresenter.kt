@@ -16,7 +16,9 @@ import soko.ekibun.bangumi.model.VideoModel
 import soko.ekibun.bangumi.ui.view.BackgroundWebView
 import soko.ekibun.bangumi.ui.view.VideoController
 import soko.ekibun.bangumi.ui.view.controller.Controller
+import soko.ekibun.bangumiplayer.model.ParserModel
 import soko.ekibun.bangumiplayer.model.ProviderModel
+import soko.ekibun.bangumiplayer.parser.ParserInfo
 import soko.ekibun.bangumiplayer.provider.BaseProvider
 import soko.ekibun.bangumiplayer.provider.ProviderInfo
 import java.util.*
@@ -192,7 +194,7 @@ class VideoPresenter(private val context: VideoActivity){
         webView.loadUrl("about:blank")
         videoCall = ProviderModel.getVideoInfo(info, episode)
         videoCall?.enqueue(ApiHelper.buildCallback(context,{video->
-            context.runOnUiThread { ProviderModel.getVideo(webView, "", video).enqueue(ApiHelper.buildCallback(context, {
+            context.runOnUiThread { ParserModel.getVideo(webView, video, info.parser?: ParserInfo("", "")).enqueue(ApiHelper.buildCallback(context, {
                 context.runOnUiThread{
                     it?.let{videoModel.play(it, context.video_surface)}
                     loadVideo = true
