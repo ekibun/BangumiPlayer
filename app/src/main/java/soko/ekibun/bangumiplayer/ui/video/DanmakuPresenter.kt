@@ -1,25 +1,53 @@
 package soko.ekibun.bangumiplayer.ui.video
 
-import android.util.Log
+import android.graphics.Color
+import master.flame.danmaku.controller.DrawHandler
+import master.flame.danmaku.danmaku.model.BaseDanmaku
+import master.flame.danmaku.danmaku.model.DanmakuTimer
+import master.flame.danmaku.danmaku.model.IDisplayer
+import master.flame.danmaku.danmaku.model.android.DanmakuContext
+import master.flame.danmaku.ui.widget.DanmakuView
 import retrofit2.Call
 import soko.ekibun.bangumi.api.ApiHelper
 import soko.ekibun.bangumi.api.bangumi.bean.Episode
-import soko.ekibun.bangumi.ui.view.DanmakuView
 import soko.ekibun.bangumiplayer.model.ProviderModel
 import soko.ekibun.bangumiplayer.provider.BaseProvider
 import soko.ekibun.bangumiplayer.provider.ProviderInfo
+import master.flame.danmaku.danmaku.model.android.Danmakus
+import master.flame.danmaku.danmaku.parser.BaseDanmakuParser
 
 class DanmakuPresenter(val view: DanmakuView,
-                          private val onFinish:(Throwable?)->Unit){
-    private val danmakus = HashMap<BaseProvider.VideoInfo, HashMap<Int, List<BaseProvider.Danmaku>>>()
+                       private val onFinish:(Throwable?)->Unit){
+    private val danmakus = HashMap<BaseProvider.VideoInfo, HashSet<BaseProvider.DanmakuInfo>>()
+    private val danmakuContext by lazy { DanmakuContext.create() }
+    private val parser by lazy { object : BaseDanmakuParser() {
+        override fun parse(): Danmakus {
+            return Danmakus()
+        } } }
 
-    var videoInfoCall: Call<BaseProvider.VideoInfo>? = null
-    val danmakuCalls: ArrayList<Call<String>> = ArrayList()
-    val danmakuKeys: HashMap<BaseProvider.VideoInfo, String> = HashMap()
+    init{
+        val maxLinesPair = HashMap<Int, Int>()
+        val overlappingEnablePair = HashMap<Int, Boolean>()
+        maxLinesPair[BaseDanmaku.TYPE_SCROLL_RL] = 20
+        overlappingEnablePair[BaseDanmaku.TYPE_SCROLL_LR] = true
+        overlappingEnablePair[BaseDanmaku.TYPE_FIX_BOTTOM] = true
+
+        danmakuContext.setDanmakuStyle(IDisplayer.DANMAKU_STYLE_STROKEN, 3f)
+                .setDuplicateMergingEnabled(true)
+                .setScrollSpeedFactor(1.2f)
+                .setScaleTextSize(0.8f)
+                .setMaximumLines(maxLinesPair)
+                .preventOverlapping(overlappingEnablePair)
+        view.prepare(parser, danmakuContext)
+        view.enableDanmakuDrawingCache(true)
+    }
+
+    private var videoInfoCall: Call<BaseProvider.VideoInfo>? = null
+    private val danmakuCalls: ArrayList<Call<String>> = ArrayList()
+    private val danmakuKeys: HashMap<BaseProvider.VideoInfo, String> = HashMap()
     fun loadDanmaku(infos: List<ProviderInfo>, video: Episode){
-        Log.v("infos", infos.toString())
         danmakus.clear()
-        view.clear()
+        view.removeAllDanmakus(true)
         danmakuCalls.forEach { it.cancel() }
         danmakuCalls.clear()
         danmakuKeys.clear()
@@ -37,7 +65,18 @@ class DanmakuPresenter(val view: DanmakuView,
 
     fun add(pos: Long, videoInfo: BaseProvider.VideoInfo, key: String){
         ProviderModel.getDanmaku(videoInfo, key, (pos / 1000).toInt()).enqueue(ApiHelper.buildCallback(view.context, {
-            danmakus.getOrPut(videoInfo){ HashMap() }.putAll(it)
+            val set = danmakus.getOrPut(videoInfo){ HashSet() }
+            val oldSet = set.toList()
+            set.addAll(it)
+            set.minus(oldSet).forEach {
+                val danmaku = danmakuContext.mDanmakuFactory.createDanmaku(it.type, danmakuContext)?: return@forEach
+                danmaku.time = (it.time * 1000).toLong()
+                danmaku.textSize = it.textSize * (parser.displayer.density - 0.6f)
+                danmaku.textColor = it.color
+                danmaku.textShadowColor = if (it.color <= Color.BLACK) Color.WHITE else Color.BLACK
+                danmaku.text = it.context
+                view.addDanmaku(danmaku)
+            }
         }, {onFinish(it)}))
     }
 
@@ -49,9 +88,6 @@ class DanmakuPresenter(val view: DanmakuView,
             danmakuKeys.forEach { videoInfo, key ->
                 add(pos, videoInfo, key)
             }
-        }
-        danmakuKeys.forEach { videoInfo, _ ->
-            view.add(danmakus[videoInfo]?.get((pos/1000).toInt())?: ArrayList())
         }
     }
 }

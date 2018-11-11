@@ -1,6 +1,8 @@
 package soko.ekibun.bangumiplayer.provider
 
+import android.graphics.Color
 import android.util.Log
+import com.google.gson.JsonObject
 import org.jsoup.Jsoup
 import retrofit2.Call
 import soko.ekibun.bangumi.api.ApiHelper
@@ -62,31 +64,40 @@ class TencentProvider: BaseProvider {
         }
     }
 
-    override fun getDanmaku(video: BaseProvider.VideoInfo, key: String, pos: Int): Call<Map<Int, List<BaseProvider.Danmaku>>> {
-        val list = ArrayList<retrofit2.Call<Map<Int, List<BaseProvider.Danmaku>>>>()
+    override fun getDanmaku(video: BaseProvider.VideoInfo, key: String, pos: Int): Call<List<BaseProvider.DanmakuInfo>> {
+        val list = ArrayList<retrofit2.Call<List<BaseProvider.DanmakuInfo>>>()
         val pageStart = pos / 300 * 10
         for(i in 0..19)
             list.add(getDanmakuCall(key,pageStart + i))
         return ApiHelper.buildGroupCall(list.toTypedArray())
     }
 
-    private fun getDanmakuCall(key: String, page: Int): retrofit2.Call<Map<Int, List<BaseProvider.Danmaku>>> {
+    private fun getDanmakuCall(key: String, page: Int): retrofit2.Call<List<BaseProvider.DanmakuInfo>> {
         return ApiHelper.buildHttpCall("https://mfm.video.qq.com/danmu?timestamp=${page*30}&target_id=$key", header){
-            val map: MutableMap<Int, MutableList<BaseProvider.Danmaku>> = HashMap()
-            val result = JsonUtil.toJsonObject(it.body()?.string()?:"").getAsJsonArray("comments")
-            result.map{ it.asJsonObject}
-                    .forEach {
-                        val time = it.get("timepoint").asInt
-                        val color = "#" + (it.get("bb_bcolor")?.asString?.replace("0x","")?:"FFFFFF")
-                        val context = it.get("content").asString
-                        val list: MutableList<BaseProvider.Danmaku> = map[time] ?: ArrayList()
-                        val danmaku = BaseProvider.Danmaku(context, time, color)
+            val list = ArrayList<BaseProvider.DanmakuInfo>()
+            val json = it.body()?.string()?: throw Exception("empty body")
+            JsonUtil.toJsonObject(json).getAsJsonArray("comments")
+                    ?.map { it.asJsonObject }?.forEach {
+                        val time = it.get("timepoint")?.asFloat?:0f
+                        val contentStyle = try { JsonUtil.toJsonObject(it.get("content_style")?.asString?:"") } catch(e: Exception) { JsonObject() }
+                        val type = if(contentStyle.has("contentStyle")){
+                            Log.v("position", contentStyle.get("position")?.asInt?.toString())
+                            5
+                        } else 1
+                        val text = 25f //字体大小
+                        val color = try{ Color.parseColor(contentStyle.get("color")?.asString?:"") } catch (e: Exception){ Color.WHITE } // 颜色
+                        val context =  it.get("content")?.asString?:""
+                        val danmaku = BaseProvider.DanmakuInfo(time, type, text, color, context)
                         Log.v("danmaku", danmaku.toString())
                         list += danmaku
-                        map[time] = list
                     }
-            return@buildHttpCall map
+            return@buildHttpCall list
         }
+    }
+
+    override val provideVideo: Boolean = false
+    override fun getVideo(webView: BackgroundWebView, video: BaseProvider.VideoInfo): Call<Pair<String, Map<String, String>>> {
+        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
     }
 
     companion object {

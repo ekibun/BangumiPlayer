@@ -7,7 +7,6 @@ import soko.ekibun.bangumi.api.ApiHelper
 import soko.ekibun.bangumi.api.bangumi.bean.Episode
 import soko.ekibun.bangumi.ui.view.BackgroundWebView
 import soko.ekibun.bangumi.util.JsonUtil
-import kotlin.math.roundToInt
 
 class BilibiliProvider: BaseProvider {
     override val siteId: Int = ProviderInfo.BILIBILI
@@ -15,6 +14,7 @@ class BilibiliProvider: BaseProvider {
     override val color: Int = 0xf25d8e
     override val hasDanmaku: Boolean = true
     override val supportSearch: Boolean = true
+    override val provideVideo: Boolean = false
 
     override fun search(key: String): Call<List<ProviderInfo>> {
         return ApiHelper.buildHttpCall("http://api.bilibili.com/x/web-interface/search/type?search_type=media_bangumi&keyword=${java.net.URLEncoder.encode(key, "utf-8")}", header){
@@ -44,25 +44,29 @@ class BilibiliProvider: BaseProvider {
         return ApiHelper.buildCall { "OK" }
     }
 
-    override fun getDanmaku(video: BaseProvider.VideoInfo, key: String, pos: Int): Call<Map<Int, List<BaseProvider.Danmaku>>> {
+    override fun getDanmaku(video: BaseProvider.VideoInfo, key: String, pos: Int): Call<List<BaseProvider.DanmakuInfo>> {
         return ApiHelper.buildHttpCall("https://comment.bilibili.com/${video.id}.xml", header) {
-            val map: MutableMap<Int, MutableList<BaseProvider.Danmaku>> = HashMap()
-            val xml = String(IqiyiProvider.inflate(it.body()!!.bytes(), true))
+            val list = ArrayList<BaseProvider.DanmakuInfo>()
+            val xml = String(IqiyiProvider.inflate(it.body()?.bytes()?: throw Exception("empty body"), true))
             val doc = Jsoup.parse(xml)
-            val infos = doc.select("d")
-            for (info in infos) {
-                val p = info.attr("p").split(",")
-                val time = p.getOrNull(0)?.toFloat()?.roundToInt()?:0
-                val color = "#" + String.format("%06x",  p.getOrNull(3)?.toLong()).toUpperCase()
-                val context = info.text()
-                val list: MutableList<BaseProvider.Danmaku> = map[time] ?: ArrayList()
-                val danmaku = BaseProvider.Danmaku(context, time, color)
+            doc.select("d").forEach {
+                val p = it.attr("p").split(",")
+                val time = p.getOrNull(0)?.toFloatOrNull()?:0f //出现时间
+                val type = p.getOrNull(1)?.toIntOrNull()?:1 // 弹幕类型
+                val text = p.getOrNull(2)?.toFloatOrNull()?:25f //字体大小
+                val color = (0x00000000ff000000 or (p.getOrNull(3)?.toLongOrNull()?:0L) and 0x00000000ffffffff).toInt() // 颜色
+                val date = p.getOrNull(4)?.toLongOrNull()?:0L
+                val context =  it.text()
+                val danmaku = BaseProvider.DanmakuInfo(time, type, text, color, context, date)
                 Log.v("danmaku", danmaku.toString())
                 list += danmaku
-                map[time] = list
             }
-            return@buildHttpCall map
+            return@buildHttpCall list
         }
+    }
+
+    override fun getVideo(webView: BackgroundWebView, video: BaseProvider.VideoInfo): Call<Pair<String, Map<String, String>>> {
+        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
     }
 
     companion object {

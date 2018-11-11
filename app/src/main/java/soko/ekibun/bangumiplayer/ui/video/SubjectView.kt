@@ -1,8 +1,6 @@
 package soko.ekibun.bangumiplayer.ui.video
 
 import android.annotation.SuppressLint
-import android.support.design.widget.AppBarLayout
-import android.support.v4.view.ViewCompat
 import android.support.v7.widget.LinearLayoutManager
 import android.view.View
 import android.view.animation.AnimationUtils
@@ -56,7 +54,7 @@ class SubjectView(private val context: VideoActivity){
         context.line_list.layoutManager = LinearLayoutManager(context)
     }
 
-    val weekSmall = listOf("", "周一", "周二", "周三", "周四", "周五", "周六", "周日")
+    private val weekSmall = listOf("", "周一", "周二", "周三", "周四", "周五", "周六", "周日")
     private fun parseAirWeek(subject: Subject): String{
         var ret = "更新时间："
         subject.air_weekday.toString().forEach {
@@ -147,8 +145,8 @@ class SubjectView(private val context: VideoActivity){
 
     fun showEpisodeDetail(show: Boolean){
         context.episode_detail_list_header.visibility = if(show) View.VISIBLE else View.INVISIBLE
-        context.episode_detail_list_header.animation = AnimationUtils.loadAnimation(context, if(show) R.anim.move_in else R.anim.move_out)
+        context.episode_detail_list_header.animation = AnimationUtils.loadAnimation(context, if(show) R.anim.move_in_bottom else R.anim.move_out_bottom)
         context.episode_detail_list.visibility = if(show) View.VISIBLE else View.INVISIBLE
-        context.episode_detail_list.animation = AnimationUtils.loadAnimation(context, if(show) R.anim.move_in else R.anim.move_out)
+        context.episode_detail_list.animation = AnimationUtils.loadAnimation(context, if(show) R.anim.move_in_bottom else R.anim.move_out_bottom)
     }
 }

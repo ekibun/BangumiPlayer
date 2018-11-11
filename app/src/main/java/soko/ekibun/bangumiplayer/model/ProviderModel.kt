@@ -15,6 +15,7 @@ object ProviderModel{
             AcfunProvider(),
             DilidiliProvider(),
             DililiProvider(),
+            Anime1Provider(),
             UrlProvider()
     )
 
@@ -43,7 +44,7 @@ object ProviderModel{
         throw Exception("no such parser")
     }
 
-    fun getDanmaku(video: BaseProvider.VideoInfo, key: String, pos: Int): Call<Map<Int, List<BaseProvider.Danmaku>>>{
+    fun getDanmaku(video: BaseProvider.VideoInfo, key: String, pos: Int): Call<List<BaseProvider.DanmakuInfo>>{
         providers.forEach {
             if(it.siteId == video.siteId) return it.getDanmaku(video, key, pos)
         }

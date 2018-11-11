@@ -1,13 +1,11 @@
 package soko.ekibun.bangumiplayer.ui.video
 
+import android.Manifest
 import android.app.PendingIntent
 import android.app.PictureInPictureParams
 import android.app.RemoteAction
-import android.content.BroadcastReceiver
-import android.content.Context
-import android.content.Intent
-import android.content.IntentFilter
 import android.content.pm.ActivityInfo
+import android.content.pm.PackageManager
 import android.content.res.Configuration
 import android.graphics.drawable.Icon
 import android.os.Build
@@ -22,6 +20,10 @@ import soko.ekibun.bangumi.api.bangumi.bean.AccessToken
 import soko.ekibun.bangumi.api.bangumi.bean.Subject
 import soko.ekibun.bangumi.util.JsonUtil
 import soko.ekibun.bangumiplayer.R
+import android.content.*
+import android.util.Log
+import soko.ekibun.bangumi.util.StorageUtil
+
 
 class VideoActivity : AppCompatActivity() {
     val videoPresenter: VideoPresenter by lazy { VideoPresenter(this) }
@@ -157,6 +159,46 @@ class VideoActivity : AppCompatActivity() {
         return super.onOptionsItemSelected(item)
     }
 
+    private fun checkStorage(): Boolean{
+        if (Build.VERSION.SDK_INT >= 23 && checkSelfPermission(Manifest.permission.READ_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
+            requestPermissions(arrayOf(Manifest.permission.READ_EXTERNAL_STORAGE), REQUEST_STORAGE_CODE)
+            return false
+        }
+        return true
+    }
+
+    private var loadFileCallback:((String?)-> Unit)? = null
+    fun loadFile(callback:(String?)-> Unit){
+        loadFileCallback = callback
+        if (!checkStorage()) return
+        val intent = Intent()
+        intent.type = "video/*"
+        intent.action = Intent.ACTION_GET_CONTENT
+        startActivityForResult(intent, REQUEST_FILE_CODE)
+    }
+
+    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<String>, grantResults: IntArray) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        if (requestCode == REQUEST_STORAGE_CODE) {
+            if (grantResults[0] == PackageManager.PERMISSION_GRANTED && loadFileCallback != null) {
+                loadFile(loadFileCallback!!)
+            } else {
+                loadFileCallback?.invoke(null)
+                loadFileCallback = null
+            }
+        }
+    }
+
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+        if (requestCode == REQUEST_FILE_CODE && resultCode == RESULT_OK) {//文件
+            val uri = data?.data?: return
+            val path = StorageUtil.getRealPathFromUri(this, uri)
+            Log.v("path", path.toString())
+            loadFileCallback?.invoke(path)
+        }
+    }
+
     companion object {
         const val EXTRA_SUBJECT = "extraSubject"
         const val EXTRA_TOKEN = "extraToken"
@@ -167,13 +209,16 @@ class VideoActivity : AppCompatActivity() {
         const val CONTROL_TYPE_NEXT = 3
         const val CONTROL_TYPE_PREV = 4
 
+        private const val REQUEST_STORAGE_CODE = 1
+        private const val REQUEST_FILE_CODE = 2
+
         fun startActivity(context: Context, subject: Subject, token: AccessToken?) {
             context.startActivity(parseIntent(context, subject, token))
         }
 
         private fun parseIntent(context: Context, subject: Subject, token: AccessToken?): Intent {
             val intent = Intent(context, VideoActivity::class.java)
-            intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+            intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_MULTIPLE_TASK
             intent.putExtra(EXTRA_SUBJECT, JsonUtil.toJson(subject))
             intent.putExtra(EXTRA_TOKEN, JsonUtil.toJson(token?: AccessToken()))
             return intent

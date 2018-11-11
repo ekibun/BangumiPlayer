@@ -8,6 +8,9 @@ import soko.ekibun.bangumiplayer.provider.BaseProvider
 
 object ParserModel {
     fun getVideo(webView: BackgroundWebView, video: BaseProvider.VideoInfo, parser: ParserInfo): Call<Pair<String, Map<String, String>>>{
+        val provider = ProviderModel.providers.firstOrNull { it.siteId == video.siteId }
+        if(provider?.provideVideo == true && parser.api.isEmpty() && parser.js.isEmpty())
+            return provider.getVideo(webView, video)
         var url = parser.api
         if(url.isEmpty())
             url = video.url

@@ -14,6 +14,7 @@ class DilidiliProvider: BaseProvider {
     override val color: Int = 0xf3a47d
     override val hasDanmaku: Boolean = false
     override val supportSearch: Boolean = true
+    override val provideVideo: Boolean = false
 
     override fun search(key: String): Call<List<ProviderInfo>> {
         return ApiHelper.buildBridgeCall(Dilidili.createInstance().search(key)) {
@@ -55,7 +56,10 @@ class DilidiliProvider: BaseProvider {
         TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
     }
 
-    override fun getDanmaku(video: BaseProvider.VideoInfo, key: String, pos: Int): Call<Map<Int, List<BaseProvider.Danmaku>>> {
+    override fun getDanmaku(video: BaseProvider.VideoInfo, key: String, pos: Int): Call<List<BaseProvider.DanmakuInfo>> {
+        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+    }
+    override fun getVideo(webView: BackgroundWebView, video: BaseProvider.VideoInfo): Call<Pair<String, Map<String, String>>> {
         TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
     }
 

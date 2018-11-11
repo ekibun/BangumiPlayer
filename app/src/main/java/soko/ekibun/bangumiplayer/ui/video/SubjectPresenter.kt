@@ -167,31 +167,6 @@ class SubjectPresenter(private val context: VideoActivity){
     }
 
     private fun refreshLines(subject: Subject){
-        /*
-        val info = parseInfoModel.getInfo(subject)
-        context.item_lines.text = info?.video?.let{ context.resources.getStringArray(R.array.parse_type)[it.type]}?:context.resources.getString(R.string.add_line)
-
-        context.item_lines.setOnLongClickListener {
-            val view = context.layoutInflater.inflate(R.layout.dialog_edit_lines, context.root_layout, false)
-            info?.let{
-                view.item_api.setText(it.api)
-                view.item_video_type.setSelection(it.video?.type?:0)
-                view.item_video_id.setText(it.video?.id)
-                view.item_danmaku_type.setSelection(it.danmaku?.type?:0)
-                view.item_danmaku_id.setText(it.danmaku?.id)
-            }
-            AlertDialog.Builder(context)
-                    .setView(view)
-                    .setPositiveButton("提交"){ _: DialogInterface, _: Int ->
-                        val parseInfo = ParseInfo(view.item_api.text.toString(),
-                                ParseInfo.ParseItem(view.item_video_type.selectedItemId.toInt(), view.item_video_id.text.toString()),
-                                ParseInfo.ParseItem(view.item_danmaku_type.selectedItemId.toInt(), view.item_danmaku_id.text.toString()))
-                        parseInfoModel.saveInfo(subject, parseInfo)
-                        refreshLines(subject)
-                    }.show()
-            true
-        }*/
-
         val infos = providerInfoModel.getInfos(subject)
         context.line_list.post { subjectView.lineAdapter.setNewData(infos?.providers) }
         infos?.let{
@@ -226,62 +201,12 @@ class SubjectPresenter(private val context: VideoActivity){
         context.item_lines.setOnClickListener{
             LineDialog.showDialog(context, context.root_layout, subject){
                 if(it == null) return@showDialog
-                val infos = providerInfoModel.getInfos(subject)?: ProviderInfoList()
-                infos.providers.add(it)
-                providerInfoModel.saveInfos(subject, infos)
+                val providerInfos = providerInfoModel.getInfos(subject)?: ProviderInfoList()
+                providerInfos.providers.add(it)
+                providerInfoModel.saveInfos(subject, providerInfos)
                 refreshLines(subject)
             }
         }
-        /*
-        val dateList = subject.air_date?.split("-") ?: return
-        val year = dateList.getOrNull(0)?.toIntOrNull()?:0
-        val month = dateList.getOrNull(1)?.toIntOrNull()?:1
-
-        BangumiData.createInstance().query(year, String.format("%02d", month)).enqueue(ApiHelper.buildCallback(context, {
-            val list = ArrayList<BangumiItem.SitesBean>()
-            it.filter { it.sites?.filter { it.site == "bangumi" }?.getOrNull(0)?.id?.toIntOrNull() == subject.id }.forEach {
-                if(list.size == 0)
-                    list.add(BangumiItem.SitesBean("offical", it.officialSite))
-                list.addAll(it.sites?.filter { it.site != "bangumi" }?:ArrayList())
-            }
-            context.item_lines.setOnClickListener {
-                val popList = ListPopupWindow(context)
-                popList.anchorView = context.item_lines
-                popList.width = context.root_layout.width /2
-                popList.setAdapter(ProviderAdapter(context, list))
-                popList.isModal = true
-                popList.show()
-
-                popList.listView?.setOnItemClickListener { _, _, position, _ ->
-                    try{
-                        //CustomTabsIntent.Builder().build().launchUrl(context, Uri.parse(list[position].parseUrl()))
-                    }catch (e: Exception){ e.printStackTrace() }
-                    popList.dismiss()
-                }
-
-                popList.listView?.setOnItemLongClickListener { _, _, position, _ ->
-                    ParseModel.processUrl(list[position].parseUrl()){context.runOnUiThread {
-                        val view = context.layoutInflater.inflate(R.layout.dialog_edit_lines, context.root_layout, false)
-                        view.item_video_type.setSelection(it.type)
-                        view.item_video_id.setText(it.id)
-                        view.item_danmaku_type.setSelection(it.type)
-                        view.item_danmaku_id.setText(it.id)
-                        AlertDialog.Builder(context)
-                                .setView(view)
-                                .setPositiveButton("提交"){ _: DialogInterface, _: Int ->
-                                    val parseInfo = ParseInfo(view.item_api.text.toString(),
-                                            ParseInfo.ParseItem(view.item_video_type.selectedItemId.toInt(), view.item_video_id.text.toString()),
-                                            ParseInfo.ParseItem(view.item_danmaku_type.selectedItemId.toInt(), view.item_danmaku_id.text.toString()))
-                                    parseInfoModel.saveInfo(subject, parseInfo)
-                                    refreshLines(subject)
-                                }.show()
-                    } }
-                    popList.dismiss()
-                    true
-                }
-            }
-        }, {}))
-        */
     }
 
     private fun refreshCollection(subject: Subject){

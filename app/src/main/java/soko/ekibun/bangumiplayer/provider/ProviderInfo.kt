@@ -21,5 +21,6 @@ data class ProviderInfo(
         const val BILIBILI = 7
         const val DILILI = 8
         const val ACFUN = 9
+        const val ANIME1 = 10
     }
 }

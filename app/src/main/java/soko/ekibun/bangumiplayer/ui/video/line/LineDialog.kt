@@ -14,10 +14,11 @@ import soko.ekibun.bangumiplayer.model.ProviderModel
 import soko.ekibun.bangumiplayer.parser.ParserInfo
 import soko.ekibun.bangumiplayer.provider.BaseProvider
 import soko.ekibun.bangumiplayer.provider.ProviderInfo
+import soko.ekibun.bangumiplayer.ui.video.VideoActivity
 
 object LineDialog{
 
-    fun showDialog(context: Activity, viewGroup: ViewGroup, subject: Subject, info: ProviderInfo? = null, callback: (ProviderInfo?)-> Unit){
+    fun showDialog(context: VideoActivity, viewGroup: ViewGroup, subject: Subject, info: ProviderInfo? = null, callback: (ProviderInfo?)-> Unit){
         val view =context.layoutInflater.inflate(R.layout.dialog_add_line, viewGroup, false)
         val dialog = AlertDialog.Builder(context)
                 .setView(view).create()
@@ -57,7 +58,14 @@ object LineDialog{
             SearchDialog.showDialog(context, viewGroup, subject){
                 updateInfo(view, it) }
         }
-        
+
+        view.item_file.setOnClickListener {
+            context.loadFile {file->
+                if(file== null) return@loadFile
+                updateInfo( view, ProviderInfo(ProviderInfo.URL, file))
+            }
+        }
+
         view.item_ok.setOnClickListener {
             val provider = view.item_video_type.tag as? BaseProvider?: return@setOnClickListener
             val parser = view.item_video_api.tag as? ParserInfo

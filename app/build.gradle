@@ -51,4 +51,5 @@ dependencies {
     implementation 'com.oushangfeng:PinnedSectionItemDecoration:1.2.4'
     implementation 'com.github.siyamed:android-shape-imageview:0.9.3'
     implementation 'com.zhy:base-adapter:3.0.3'
+    implementation 'com.github.ctiao:DanmakuFlameMaster:0.9.25'
 }

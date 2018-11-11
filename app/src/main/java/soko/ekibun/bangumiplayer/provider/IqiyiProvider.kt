@@ -1,5 +1,6 @@
 package soko.ekibun.bangumiplayer.provider
 
+import android.graphics.Color
 import android.util.Log
 import org.jsoup.Jsoup
 import retrofit2.Call
@@ -54,31 +55,35 @@ class IqiyiProvider: BaseProvider {
         return ApiHelper.buildCall { "OK" }
     }
 
-    override fun getDanmaku(video: BaseProvider.VideoInfo, key: String, pos: Int): retrofit2.Call<Map<Int, List<BaseProvider.Danmaku>>> {
+    override fun getDanmaku(video: BaseProvider.VideoInfo, key: String, pos: Int): Call<List<BaseProvider.DanmakuInfo>> {
         return ApiHelper.buildGroupCall(arrayOf(
                 getDanmakuCall(video, pos / 300 + 1),
                 getDanmakuCall(video, pos / 300 + 2)
         ))
     }
 
-    private fun getDanmakuCall(video: BaseProvider.VideoInfo, page: Int): retrofit2.Call<Map<Int, List<BaseProvider.Danmaku>>> {
+    private fun getDanmakuCall(video: BaseProvider.VideoInfo, page: Int): Call<List<BaseProvider.DanmakuInfo>> {
         return ApiHelper.buildHttpCall("http://cmts.iqiyi.com/bullet/${video.id.substring(video.id.length - 4, video.id.length - 2)}/${video.id.substring(video.id.length - 2, video.id.length)}/${video.id}_300_$page.z", header){
-            val map: MutableMap<Int, MutableList<BaseProvider.Danmaku>> = HashMap()
-            val xml = String(inflate(it.body()!!.bytes()))
+            val list = ArrayList<BaseProvider.DanmakuInfo>()
+            val xml = String(inflate(it.body()?.bytes()?: throw Exception("empty body")))
             val doc = Jsoup.parse(xml)
-            val infos = doc.select("bulletInfo")
-            for (info in infos) {
-                val time = Integer.valueOf(info.selectFirst("showTime").text())
-                val color = "#" + info.selectFirst("color").text().toUpperCase()
-                val context = info.selectFirst("content").text()
-                val list: MutableList<BaseProvider.Danmaku> = map[time] ?: ArrayList()
-                val danmaku = BaseProvider.Danmaku(context, time, color)
+            doc.select("bulletInfo").forEach {
+                val time = it.selectFirst("showTime")?.text()?.toFloatOrNull()?:0f
+                val type = 1 // 弹幕类型
+                val text = 25f //字体大小
+                val color = try{ Color.parseColor("#${it.selectFirst("color")?.text()?.toUpperCase()}") } catch (e: Exception){ Color.WHITE } // 颜色
+                val context =  it.selectFirst("content").text()
+                val danmaku = BaseProvider.DanmakuInfo(time, type, text, color, context)
                 Log.v("danmaku", danmaku.toString())
                 list += danmaku
-                map[time] = list
             }
-            return@buildHttpCall map
+            return@buildHttpCall list
         }
+    }
+
+    override val provideVideo: Boolean = false
+    override fun getVideo(webView: BackgroundWebView, video: BaseProvider.VideoInfo): Call<Pair<String, Map<String, String>>> {
+        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
     }
 
     companion object {

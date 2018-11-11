@@ -4,7 +4,6 @@ import android.content.res.Configuration
 import android.graphics.Color
 import android.os.Build
 import android.support.design.widget.AppBarLayout
-import android.util.Log
 import android.view.View
 import android.view.WindowManager
 import kotlinx.android.synthetic.main.activity_video.*
@@ -21,8 +20,8 @@ class SystemUIPresenter(private val context: VideoActivity){
             if(it == 0)
                 if(isLandscape) {
                     if(!showMask) setSystemUiVisibility(Visibility.FULLSCREEN)
-                }
-                else setSystemUiVisibility(Visibility.IMMERSIVE)
+                    else setSystemUiVisibility(Visibility.FULLSCREEN_IMMERSIVE)
+                } else setSystemUiVisibility(Visibility.IMMERSIVE)
         }
     }
 
@@ -42,20 +41,23 @@ class SystemUIPresenter(private val context: VideoActivity){
     }
 
     fun onWindowModeChanged(isInMultiWindowMode: Boolean, newConfig: Configuration?) {
+        isLandscape = newConfig?.orientation != Configuration.ORIENTATION_PORTRAIT
         if (newConfig?.orientation == Configuration.ORIENTATION_LANDSCAPE && (Build.VERSION.SDK_INT <24 || !isInMultiWindowMode)) {
-            isLandscape = true
-            if(!showMask)setSystemUiVisibility(SystemUIPresenter.Visibility.FULLSCREEN)
+            if(!showMask) setSystemUiVisibility(SystemUIPresenter.Visibility.FULLSCREEN)
+            else setSystemUiVisibility(Visibility.FULLSCREEN_IMMERSIVE)
         }else if (newConfig?.orientation == Configuration.ORIENTATION_PORTRAIT){
-            isLandscape = false
             setSystemUiVisibility(SystemUIPresenter.Visibility.IMMERSIVE)
         }
+        context.videoPresenter.danmakuPresenter.view.config.setScaleTextSize(when{
+            isInMultiWindowMode -> 0.7f
+            isLandscape -> 1.1f
+            else-> 0.8f
+        })
     }
-
     var isLandscape = false
     var showMask = false
     fun setSystemUiVisibility(visibility: Visibility){
         showMask = visibility == Visibility.FULLSCREEN_IMMERSIVE
-        Log.v("visibility", visibility.name)
         when(visibility){
             SystemUIPresenter.Visibility.FULLSCREEN -> {
                 context.root_layout.fitsSystemWindows=true

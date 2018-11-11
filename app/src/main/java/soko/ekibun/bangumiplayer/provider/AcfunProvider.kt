@@ -7,7 +7,6 @@ import soko.ekibun.bangumi.api.ApiHelper
 import soko.ekibun.bangumi.api.bangumi.bean.Episode
 import soko.ekibun.bangumi.ui.view.BackgroundWebView
 import soko.ekibun.bangumi.util.JsonUtil
-import kotlin.math.roundToInt
 
 class AcfunProvider: BaseProvider {
     override val siteId: Int = ProviderInfo.ACFUN
@@ -15,6 +14,7 @@ class AcfunProvider: BaseProvider {
     override val color: Int = 0xfd4c5b
     override val hasDanmaku: Boolean = true
     override val supportSearch: Boolean = true
+    override val provideVideo: Boolean = false
 
     override fun search(key: String): Call<List<ProviderInfo>> {
         return ApiHelper.buildHttpCall("http://search.aixifan.com/search?q=${java.net.URLEncoder.encode(key, "utf-8")}", header){
@@ -51,24 +51,37 @@ class AcfunProvider: BaseProvider {
         return ApiHelper.buildCall { "OK" }
     }
 
-    override fun getDanmaku(video: BaseProvider.VideoInfo, key: String, pos: Int): Call<Map<Int, List<BaseProvider.Danmaku>>> {
-        //http://danmu.aixifan.com/V4/6373781/0/1000/
-        return ApiHelper.buildHttpCall("http://danmu.aixifan.com/V4/${video.id}/0/1000/", header) {
-            val map: MutableMap<Int, MutableList<BaseProvider.Danmaku>> = HashMap()
+    override fun getDanmaku(video: BaseProvider.VideoInfo, key: String, pos: Int): Call<List<BaseProvider.DanmakuInfo>> {
+        return getDanmakuCall(video, ArrayList(), 0)
+    }
+
+    private fun getDanmakuCall(video: BaseProvider.VideoInfo, list: ArrayList<BaseProvider.DanmakuInfo>, pos: Long): Call<List<BaseProvider.DanmakuInfo>> {
+        return ApiHelper.buildBridgeCall<List<BaseProvider.DanmakuInfo>, List<BaseProvider.DanmakuInfo>>(ApiHelper.buildHttpCall("http://danmu.aixifan.com/V4/${video.id}/$pos/1000/", header) {
+            val sublist = ArrayList<BaseProvider.DanmakuInfo>()
             val json = it.body()?.string()?: throw Exception("empty body")
             JsonUtil.toEntity(json, JsonArray::class.java)?.get(2)?.asJsonArray?.map { it.asJsonObject }?.forEach {
                 val p = it.get("c").asString.split(",")
-                val time = p.getOrNull(0)?.toFloat()?.roundToInt()?:0
-                val color = "#" + String.format("%06x",  p.getOrNull(3)?.toLong()).toUpperCase()
+                val time = p.getOrNull(0)?.toFloatOrNull()?:0f //出现时间
+                val type = p.getOrNull(2)?.toIntOrNull()?:1 // 弹幕类型
+                val text = p.getOrNull(3)?.toFloatOrNull()?:25f //字体大小
+                val color = (0x00000000ff000000 or (p.getOrNull(1)?.toLongOrNull()?:0L) and 0x00000000ffffffff).toInt() // 颜色
+                val date = p.getOrNull(5)?.toLongOrNull()?:0L //创建时间
                 val context =  it.get("m").asString
-                val list: MutableList<BaseProvider.Danmaku> = map[time] ?: ArrayList()
-                val danmaku = BaseProvider.Danmaku(context, time, color)
+                val danmaku = BaseProvider.DanmakuInfo(time, type, text, color, context, date)
                 Log.v("danmaku", danmaku.toString())
-                list += danmaku
-                map[time] = list
+                sublist += danmaku
             }
-            return@buildHttpCall map
+            return@buildHttpCall sublist
+        }){
+            list.addAll(it)
+            val newPos = it.lastOrNull()?.timeStamp?: return@buildBridgeCall ApiHelper.buildCall { list }
+            if(newPos == pos) return@buildBridgeCall ApiHelper.buildCall { list }
+            return@buildBridgeCall getDanmakuCall(video, list, newPos)
         }
+    }
+
+    override fun getVideo(webView: BackgroundWebView, video: BaseProvider.VideoInfo): Call<Pair<String, Map<String, String>>> {
+        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
     }
 
     companion object {

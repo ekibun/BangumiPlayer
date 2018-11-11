@@ -1,7 +1,7 @@
 package soko.ekibun.bangumiplayer.provider
 
+import android.graphics.Color
 import android.util.Log
-import com.google.gson.JsonNull
 import org.jsoup.Jsoup
 import retrofit2.Call
 import soko.ekibun.bangumi.api.ApiHelper
@@ -55,33 +55,39 @@ class PptvProvider: BaseProvider {
         return ApiHelper.buildCall { "OK" }
     }
 
-    override fun getDanmaku(video: BaseProvider.VideoInfo, key: String, pos: Int): Call<Map<Int, List<BaseProvider.Danmaku>>> {
-        val list = ArrayList<retrofit2.Call<Map<Int, List<BaseProvider.Danmaku>>>>()
+    override fun getDanmaku(video: BaseProvider.VideoInfo, key: String, pos: Int): Call<List<BaseProvider.DanmakuInfo>> {
+        val list = ArrayList<retrofit2.Call<List<BaseProvider.DanmakuInfo>>>()
         val pageStart = pos / 300 * 3
         for(i in 0..5)
             list.add(getDanmakuCall(video, pageStart + i))
         return ApiHelper.buildGroupCall(list.toTypedArray())
     }
 
-    private fun getDanmakuCall(video: BaseProvider.VideoInfo, page: Int): retrofit2.Call<Map<Int, List<BaseProvider.Danmaku>>> {
+    private fun getDanmakuCall(video: BaseProvider.VideoInfo, page: Int): retrofit2.Call<List<BaseProvider.DanmakuInfo>> {
         return ApiHelper.buildHttpCall("http://apicdn.danmu.pptv.com/danmu/v4/pplive/ref/vod_${video.id}/danmu?pos=${page* 1000}", header){
-            val map: MutableMap<Int, MutableList<BaseProvider.Danmaku>> = HashMap()
-            val result = JsonUtil.toJsonObject(it.body()!!.string()).getAsJsonObject("data").getAsJsonArray("infos")
-            result.map{ it.asJsonObject}
-                    .filter { it.get("id").asLong != 0L }
-                    .forEach {
-                        val time = it.get("play_point").asInt / 10
-                        val fontClr = it.get("font_color")
-                        val color = if(fontClr is JsonNull) "#FFFFFF" else fontClr.asString
-                        val context = Jsoup.parse(it.get("content").asString).text()
-                        val list: MutableList<BaseProvider.Danmaku> = map[time] ?: ArrayList()
-                        val danmaku = BaseProvider.Danmaku(context, time, color)
+            val list = ArrayList<BaseProvider.DanmakuInfo>()
+            val json = it.body()?.string()?: throw Exception("empty body")
+            JsonUtil.toJsonObject(json).getAsJsonObject("data")?.getAsJsonArray("infos")
+                    ?.map { it.asJsonObject }?.filter { it.get("id").asLong != 0L }?.forEach {
+                        val time = (it.get("play_point")?.asFloat?:0f) / 10
+                        val type = when {// 弹幕类型
+                            it.get("motion")?.asInt?:0 == 0 -> 1
+                            it.get("font_position")?.asInt?:0 == 300 -> 4
+                            else -> 5 }
+                        val text = 25f //字体大小
+                        val color = try{ Color.parseColor(it.get("font_color")?.asString?:"") } catch (e: Exception){ Color.WHITE } // 颜色
+                        val context =  Jsoup.parse(it.get("content")?.asString?:"").text()
+                        val danmaku = BaseProvider.DanmakuInfo(time, type, text, color, context)
                         Log.v("danmaku", danmaku.toString())
                         list += danmaku
-                        map[time] = list
                     }
-            return@buildHttpCall map
+            return@buildHttpCall list
         }
+    }
+
+    override val provideVideo: Boolean = false
+    override fun getVideo(webView: BackgroundWebView, video: BaseProvider.VideoInfo): Call<Pair<String, Map<String, String>>> {
+        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
     }
 
     companion object {

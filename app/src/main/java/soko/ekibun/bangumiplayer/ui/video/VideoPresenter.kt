@@ -23,11 +23,10 @@ import soko.ekibun.bangumiplayer.provider.BaseProvider
 import soko.ekibun.bangumiplayer.provider.ProviderInfo
 import java.util.*
 
-
 class VideoPresenter(private val context: VideoActivity){
 
     val danmakuPresenter: DanmakuPresenter by lazy{
-        DanmakuPresenter(context.danmaku_view){
+        DanmakuPresenter(context.danmaku_flame){
             loadDanmaku = true
         }
     }
@@ -46,10 +45,9 @@ class VideoPresenter(private val context: VideoActivity){
                     //context.viewpager.loadAv(nextAv)
                 }
                 Controller.Action.DANMAKU -> {
-
-                    danmakuPresenter.view.visibility = if(danmakuPresenter.view.visibility == View.VISIBLE)
-                        View.INVISIBLE else View.VISIBLE
-                    controller.updateDanmaku(danmakuPresenter.view.visibility == View.VISIBLE)
+                    if(danmakuPresenter.view.isShown)
+                        danmakuPresenter.view.hide() else danmakuPresenter.view.show()
+                    controller.updateDanmaku(danmakuPresenter.view.isShown)
                 }
                 Controller.Action.SEEK_TO -> {
                     videoModel.player.seekTo(param as Long)
@@ -82,6 +80,7 @@ class VideoPresenter(private val context: VideoActivity){
             }
         }, { context.systemUIPresenter.isLandscape })
     }
+
     val videoModel: VideoModel by lazy{
         VideoModel(context, object : VideoModel.Listener{
             override fun onReady(playWhenReady: Boolean) {
@@ -99,6 +98,7 @@ class VideoPresenter(private val context: VideoActivity){
                 controller.updateLoading(false)
             }
             override fun onBuffering() {
+                danmakuPresenter.view.pause()
                 controller.updateLoading(true)
             }
             override fun onEnded() {
@@ -189,7 +189,7 @@ class VideoPresenter(private val context: VideoActivity){
         controller.setTitle(episode.parseSort() + " - " + if(episode.name_cn.isNullOrEmpty()) episode.name else episode.name_cn)
         playLoopTask?.cancel()
         //context.nested_scroll.tag = true
-
+        danmakuPresenter.view.pause()
         videoCall?.cancel()
         webView.loadUrl("about:blank")
         videoCall = ProviderModel.getVideoInfo(info, episode)
@@ -212,6 +212,9 @@ class VideoPresenter(private val context: VideoActivity){
             playLoopTask = object: TimerTask(){ override fun run() {
                 updateProgress()
                 danmakuPresenter.add(videoModel.player.currentPosition)
+                if(danmakuPresenter.view.isShown && !danmakuPresenter.view.isPaused){
+                    danmakuPresenter.view.start(videoModel.player.currentPosition)
+                }
             } }
             controller.timer.schedule(playLoopTask, 0, 1000)
             context.video_surface.keepScreenOn = true
@@ -230,7 +233,7 @@ class VideoPresenter(private val context: VideoActivity){
         controller.updateProgress(videoModel.player.currentPosition)
     }
 
-    fun updatePauseResume() {
+    private fun updatePauseResume() {
         controller.updatePauseResume(videoModel.player.playWhenReady)
         context.setPictureInPictureParams(!videoModel.player.playWhenReady)
     }
