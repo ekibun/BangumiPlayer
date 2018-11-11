@@ -10,20 +10,23 @@ import soko.ekibun.bangumiplayer.provider.ProviderInfoList
 
 class ProviderInfoModel(context: Context){
     val sp: SharedPreferences by lazy{ PreferenceManager.getDefaultSharedPreferences(context) }
+    fun prefKey(subject: Subject): String{
+        return PREF_PROVIDER_INFO + subject.id
+    }
+
     fun saveInfos(subject: Subject, infos: ProviderInfoList) {
         val editor = sp.edit()
-        val list = JsonUtil.toEntity<Map<Int, ProviderInfoList>>(sp.getString(PREF_PROVIDER_INFO, JsonUtil.toJson(HashMap<Int, ProviderInfoList>()))!!, object: TypeToken<Map<Int, ProviderInfoList>>(){}.type)?.toMutableMap()?:HashMap()
+        val key = prefKey(subject)
         if(infos.providers.size == 0){
-            list.remove(subject.id)
+            editor.remove(key)
         }else{
-            list[subject.id] = infos
+            editor.putString(key, JsonUtil.toJson(infos))
         }
-        editor.putString(PREF_PROVIDER_INFO, JsonUtil.toJson(list))
         editor.apply()
     }
 
     fun getInfos(subject: Subject): ProviderInfoList? {
-        return JsonUtil.toEntity<Map<Int, ProviderInfoList>>(sp.getString(PREF_PROVIDER_INFO, JsonUtil.toJson(HashMap<Int, ProviderInfoList>()))!!, object: TypeToken<Map<Int, ProviderInfoList>>(){}.type)?.get(subject.id)
+        return JsonUtil.toEntity(sp.getString(prefKey(subject), JsonUtil.toJson(ProviderInfoList()))!!, ProviderInfoList::class.java)
     }
 
     companion object {

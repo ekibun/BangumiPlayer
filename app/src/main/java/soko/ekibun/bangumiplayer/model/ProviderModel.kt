@@ -19,6 +19,10 @@ object ProviderModel{
             UrlProvider()
     )
 
+    fun getProvider(siteId: Int): BaseProvider?{
+        return providers.firstOrNull { it.siteId == siteId }
+    }
+
     fun searchAll(key: String): Call<List<ProviderInfo>>{
         return ApiHelper.buildGroupCall(providers.filter { it.supportSearch }.map{ it.search(key) }.toTypedArray())
     }

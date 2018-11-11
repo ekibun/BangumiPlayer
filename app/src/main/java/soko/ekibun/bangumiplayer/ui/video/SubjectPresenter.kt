@@ -25,7 +25,6 @@ import soko.ekibun.bangumiplayer.ui.video.line.LineDialog
 class SubjectPresenter(private val context: VideoActivity){
     val api by lazy { Bangumi.createInstance() }
     val subjectView by lazy{ SubjectView(context) }
-    //private val parseInfoModel by lazy { ParseInfoModel(context) }
     private val providerInfoModel by lazy { ProviderInfoModel(context) }
 
     val subject by lazy{ JsonUtil.toEntity(context.intent.getStringExtra(VideoActivity.EXTRA_SUBJECT), Subject::class.java)!! }

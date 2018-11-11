@@ -21,8 +21,10 @@ class LineAdapter(data: MutableList<ProviderInfo>? = null) :
         helper.itemView.item_title.setTextColor(color)
         helper.itemView.item_title.text = if(item.title.isEmpty()) item.id else item.title
         val provider = ProviderModel.providers.firstOrNull { it.siteId == item.siteId }?:return
+        helper.itemView.item_switch.setOnCheckedChangeListener { _, _ ->  }
         helper.itemView.item_switch.isEnabled = provider.hasDanmaku
         helper.itemView.item_switch.isChecked = provider.hasDanmaku && item.loadDanmaku
+        helper.itemView.item_switch.tag = index
         helper.itemView.item_switch.setOnCheckedChangeListener { _, isChecked ->
             onSwitchChange(index, isChecked)
         }

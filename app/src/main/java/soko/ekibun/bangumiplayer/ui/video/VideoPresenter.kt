@@ -199,7 +199,7 @@ class VideoPresenter(private val context: VideoActivity){
                     it?.let{videoModel.play(it, context.video_surface)}
                     loadVideo = true
                 } }, {})) }
-            context.runOnUiThread { danmakuPresenter.loadDanmaku(infos.filter { it.loadDanmaku }, episode) }
+            context.runOnUiThread { danmakuPresenter.loadDanmaku(infos.filter { it.loadDanmaku && ProviderModel.getProvider(it.siteId)?.hasDanmaku == true }, episode) }
         },{ loadVideoInfo = it == null }))
     }
 
