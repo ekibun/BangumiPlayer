@@ -164,7 +164,9 @@ class VideoController(view: ViewGroup,
     }
 
     fun updateLoading(show: Boolean){
-        ctrExtra.ctr_load.visibility = if(show) View.VISIBLE else View.INVISIBLE
+        ctrExtra.post {
+            ctrExtra.ctr_load.visibility = if(show) View.VISIBLE else View.INVISIBLE
+        }
     }
 
     companion object {

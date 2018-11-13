@@ -1,5 +1,6 @@
 package soko.ekibun.bangumiplayer.ui.video
 
+import android.annotation.SuppressLint
 import android.content.pm.ActivityInfo
 import android.graphics.Color
 import android.support.constraint.ConstraintLayout
@@ -10,8 +11,6 @@ import android.view.WindowManager
 import com.google.android.exoplayer2.ExoPlaybackException
 import kotlinx.android.synthetic.main.activity_video.*
 import kotlinx.android.synthetic.main.video_player.*
-import retrofit2.Call
-import soko.ekibun.bangumi.api.ApiHelper
 import soko.ekibun.bangumi.api.bangumi.bean.Episode
 import soko.ekibun.bangumi.api.bangumi.bean.Subject
 import soko.ekibun.bangumiplayer.model.VideoModel
@@ -19,10 +18,7 @@ import soko.ekibun.bangumi.ui.view.BackgroundWebView
 import soko.ekibun.bangumi.ui.view.VideoController
 import soko.ekibun.bangumi.ui.view.controller.Controller
 import soko.ekibun.bangumi.util.AppUtil
-import soko.ekibun.bangumiplayer.model.ParserModel
 import soko.ekibun.bangumiplayer.model.ProviderModel
-import soko.ekibun.bangumiplayer.parser.ParserInfo
-import soko.ekibun.bangumiplayer.provider.BaseProvider
 import soko.ekibun.bangumiplayer.provider.ProviderInfo
 import java.util.*
 
@@ -168,6 +164,7 @@ class VideoPresenter(private val context: VideoActivity){
             field = v
             parseLogcat()
         }
+    @SuppressLint("SetTextI18n")
     private fun parseLogcat(){
         context.runOnUiThread{
             if(loadVideoInfo == false || loadVideo == false || exception != null)
@@ -210,10 +207,10 @@ class VideoPresenter(private val context: VideoActivity){
             loadVideoInfo = it
             if(loadVideoInfo == true)
             context.runOnUiThread { danmakuPresenter.loadDanmaku(infos.filter { it.loadDanmaku && ProviderModel.getProvider(it.siteId)?.hasDanmaku == true }, episode) }
-        }){request, useCache ->
-            loadVideo = request != null
-            if(request != null) videoModel.play(request, context.video_surface, useCache)
-        }
+        },{request, useCache ->
+            if(useCache != null) loadVideo = request != null
+            if(request != null && useCache != null) videoModel.play(request, context.video_surface, useCache)
+        })
        /* videoCall = ProviderModel.getVideoInfo(info, episode)
         videoCall?.enqueue(ApiHelper.buildCallback(context,{video->
             context.runOnUiThread { ParserModel.getVideo(webView, video, info.parser?: ParserInfo("", "")).enqueue(ApiHelper.buildCallback(context, {

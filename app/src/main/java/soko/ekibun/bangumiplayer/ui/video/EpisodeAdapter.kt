@@ -53,7 +53,7 @@ class EpisodeAdapter(val context: VideoActivity, data: MutableList<SectionEntity
             }
             context.videoPresenter.videoModel.getVideo(item.t, subject, webView, {loaded->
                 getViewByPosition(context.episode_detail_list, index, R.id.item_layout)?.let{
-                    it.item_download_info.text = if(loaded)"解析视频地址" else ""
+                    it.item_download_info.text = if(loaded  == true)"解析视频地址" else ""
                 }
             }){request, _ ->
                 helper.itemView.post {

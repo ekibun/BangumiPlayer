@@ -71,7 +71,7 @@ class VideoModel(private val context: Context, private val onAction: Listener) {
     var videoCall: Call<Pair<String, Map<String,String>>>? = null
     private val videoCacheModel by lazy{App.getVideoCacheModel(context)}
     private val providerInfoModel by lazy{ProviderInfoModel(context)}
-    fun getVideo(episode: Episode, subject: Subject, webView: BackgroundWebView, onGetVideoInfo: (Boolean)->Unit, onGetVideo: (Pair<String, Map<String,String>>?, Boolean)->Unit) {
+    fun getVideo(episode: Episode, subject: Subject, webView: BackgroundWebView, onGetVideoInfo: (Boolean?)->Unit, onGetVideo: (Pair<String, Map<String,String>>?, Boolean?)->Unit) {
         val videoCache = videoCacheModel.getCache(episode, subject)
         if (videoCache != null) {
             onGetVideoInfo(true)
@@ -87,8 +87,8 @@ class VideoModel(private val context: Context, private val onAction: Listener) {
                 videoCall = ParserModel.getVideo(webView, video, info.parser?: ParserInfo("", ""))
                 videoCall?.enqueue(ApiHelper.buildCallback(context, {
                     onGetVideo(it, false)
-                }, { onGetVideo(null, false) }))
-            }, { onGetVideoInfo(false)}))
+                }, { if(it != null) onGetVideo(null,if(it.toString().contains("Canceled"))null else false) }))
+            }, { if(it != null) onGetVideoInfo(if(it.toString().contains("Canceled"))null else false)}))
         }
     }
 
