@@ -22,7 +22,12 @@ import soko.ekibun.bangumi.util.JsonUtil
 import soko.ekibun.bangumiplayer.R
 import android.content.*
 import android.util.Log
+import kotlinx.android.synthetic.main.subject_episode.*
+import soko.ekibun.bangumi.api.bangumi.bean.Episode
+import soko.ekibun.bangumi.util.AppUtil
 import soko.ekibun.bangumi.util.StorageUtil
+import soko.ekibun.bangumiplayer.App
+import soko.ekibun.bangumiplayer.service.DownloadService
 
 
 class VideoActivity : AppCompatActivity() {
@@ -41,6 +46,7 @@ class VideoActivity : AppCompatActivity() {
         systemUIPresenter.init()
 
         registerReceiver(receiver, IntentFilter(ACTION_MEDIA_CONTROL + subjectPresenter.subject.id))
+        registerReceiver(downloadReceiver, IntentFilter(DownloadService.getBroadcastAction(subjectPresenter.subject)))
     }
 
     override fun onCreateOptionsMenu(menu: Menu?): Boolean {
@@ -54,10 +60,32 @@ class VideoActivity : AppCompatActivity() {
     }
 
     override fun onMultiWindowModeChanged(isInMultiWindowMode: Boolean, newConfig: Configuration?) {
-        systemUIPresenter.onWindowModeChanged(isInMultiWindowMode, newConfig)
+        systemUIPresenter.onWindowModeChanged(isInMultiWindowMode, (Build.VERSION.SDK_INT >=24 && isInPictureInPictureMode), newConfig)
         if(video_surface_container.visibility == View.VISIBLE)
             videoPresenter.controller.doShowHide(false)
         super.onMultiWindowModeChanged(isInMultiWindowMode, newConfig)
+    }
+
+    private val downloadReceiver = object: BroadcastReceiver(){
+        override fun onReceive(context: Context, intent: Intent) {
+            try{
+                val episode = JsonUtil.toEntity(intent.getStringExtra(DownloadService.EXTRA_EPISODE), Episode::class.java)!!
+                val percent = intent.getFloatExtra(DownloadService.EXTRA_PERCENT, Float.NaN)
+                val bytes = intent.getLongExtra(DownloadService.EXTRA_BYTES, 0L)
+
+                val index = subjectPresenter.subjectView.episodeDetailAdapter.data.indexOfFirst { it.t?.id == episode.id }
+                subjectPresenter.subjectView.episodeDetailAdapter.getViewByPosition(episode_detail_list, index, R.id.item_layout)?.let{
+                    subjectPresenter.subjectView.episodeDetailAdapter.updateDownload(it, percent, bytes, intent.getBooleanExtra(DownloadService.EXTRA_CANCEL, true), !intent.hasExtra(DownloadService.EXTRA_CANCEL))
+                }
+
+                val epIndex = subjectPresenter.subjectView.episodeAdapter.data.indexOfFirst { it.id == episode.id }
+                subjectPresenter.subjectView.episodeAdapter.getViewByPosition(episode_list, epIndex, R.id.item_layout)?.let{
+                    subjectPresenter.subjectView.episodeAdapter.updateDownload(it, percent, bytes, intent.getBooleanExtra(DownloadService.EXTRA_CANCEL, true), !intent.hasExtra(DownloadService.EXTRA_CANCEL))
+                }
+            }catch (e: Exception){
+                e.printStackTrace()
+            }
+        }
     }
 
     private val receiver = object: BroadcastReceiver(){
@@ -125,6 +153,7 @@ class VideoActivity : AppCompatActivity() {
     override fun onDestroy() {
         super.onDestroy()
         unregisterReceiver(receiver)
+        unregisterReceiver(downloadReceiver)
     }
 
     //back
@@ -147,13 +176,10 @@ class VideoActivity : AppCompatActivity() {
         when (item.itemId) {
             android.R.id.home -> processBack()
             R.id.action_share -> {
-                val subject = JsonUtil.toEntity(intent.getStringExtra(EXTRA_SUBJECT), Subject::class.java)!!
-                val intent = Intent(Intent.ACTION_SEND)
-                intent.type = "text/plain"
-                intent.putExtra(Intent.EXTRA_SUBJECT, getString(R.string.share))
-                intent.putExtra(Intent.EXTRA_TEXT, subject.name + " " + subject.url)
-                intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK
-                startActivity(Intent.createChooser(intent, getString(R.string.share)))
+                AppUtil.shareString(this, subjectPresenter.subject.name + " " + subjectPresenter.subject.url)
+            }
+            R.id.action_refresh ->{
+                subjectPresenter.refreshSubject()
             }
         }
         return super.onOptionsItemSelected(item)
@@ -216,7 +242,7 @@ class VideoActivity : AppCompatActivity() {
             context.startActivity(parseIntent(context, subject, token))
         }
 
-        private fun parseIntent(context: Context, subject: Subject, token: AccessToken?): Intent {
+        fun parseIntent(context: Context, subject: Subject, token: AccessToken?): Intent {
             val intent = Intent(context, VideoActivity::class.java)
             intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_MULTIPLE_TASK
             intent.putExtra(EXTRA_SUBJECT, JsonUtil.toJson(subject))

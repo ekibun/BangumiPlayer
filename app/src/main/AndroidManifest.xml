@@ -1,12 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android"
-          xmlns:tools="http://schemas.android.com/tools"
-          package="soko.ekibun.bangumiplayer">
+<manifest
+        xmlns:android="http://schemas.android.com/apk/res/android"
+        xmlns:tools="http://schemas.android.com/tools"
+        package="soko.ekibun.bangumiplayer">
     <uses-permission android:name="android.permission.INTERNET"/>
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"/>
 
     <application
+            android:name=".App"
             android:allowBackup="true"
             android:icon="@mipmap/ic_launcher"
             android:label="@string/app_name"
@@ -15,12 +17,24 @@
             android:supportsRtl="true"
             android:theme="@style/AppTheme"
             tools:ignore="UnusedAttribute">
-        <activity android:name=".ui.video.VideoActivity"
-                  android:exported="true"
-                  android:configChanges="screenSize|smallestScreenSize|screenLayout|orientation|uiMode"
-                  android:supportsPictureInPicture="true"
-                  tools:targetApi="n">
+        <activity
+                android:name=".ui.video.VideoActivity"
+                android:configChanges="screenSize|smallestScreenSize|screenLayout|orientation|uiMode"
+                android:exported="true"
+                android:supportsPictureInPicture="true"
+                tools:targetApi="n">
         </activity>
+        <activity android:name="soko.ekibun.bangumi.ui.crash.CrashActivity">
+        </activity>
+        <service
+                android:name=".service.DownloadService"
+                android:enabled="true"
+                android:exported="false">
+        </service>
+        <provider
+                android:authorities="soko.ekibun.bangumiplayer"
+                android:name=".model.ContentProviderModel"
+                android:exported="true"/>
     </application>
 
 </manifest>

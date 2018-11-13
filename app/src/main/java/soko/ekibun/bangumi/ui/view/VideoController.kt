@@ -122,7 +122,7 @@ class VideoController(view: ViewGroup,
         //remove timeout task
         timeoutTask?.cancel()
         if(timeout){
-            //add timeout task
+            //doAdd timeout task
             timeoutTask = object: TimerTask(){
                 override fun run() {
                     doShowHide(false)

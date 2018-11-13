@@ -40,16 +40,16 @@ class SystemUIPresenter(private val context: VideoActivity){
         }
     }
 
-    fun onWindowModeChanged(isInMultiWindowMode: Boolean, newConfig: Configuration?) {
-        isLandscape = newConfig?.orientation != Configuration.ORIENTATION_PORTRAIT
-        if (newConfig?.orientation == Configuration.ORIENTATION_LANDSCAPE && (Build.VERSION.SDK_INT <24 || !isInMultiWindowMode)) {
+    fun onWindowModeChanged(isInMultiWindowMode: Boolean, isInPictureInPictureMode: Boolean, newConfig: Configuration?) {
+        isLandscape = isInPictureInPictureMode || (newConfig?.orientation != Configuration.ORIENTATION_PORTRAIT && !isInMultiWindowMode)
+        if (isLandscape) {
             if(!showMask) setSystemUiVisibility(SystemUIPresenter.Visibility.FULLSCREEN)
             else setSystemUiVisibility(Visibility.FULLSCREEN_IMMERSIVE)
-        }else if (newConfig?.orientation == Configuration.ORIENTATION_PORTRAIT){
+        }else {
             setSystemUiVisibility(SystemUIPresenter.Visibility.IMMERSIVE)
         }
         context.videoPresenter.danmakuPresenter.view.config.setScaleTextSize(when{
-            isInMultiWindowMode -> 0.7f
+            isInPictureInPictureMode -> 0.7f
             isLandscape -> 1.1f
             else-> 0.8f
         })

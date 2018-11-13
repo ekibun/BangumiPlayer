@@ -47,7 +47,7 @@ abstract class Controller(layoutRes: Int, view: ViewGroup) {
         }
         ctrSeekBar.setOnSeekBarChangeListener(onSeekBarChangeListener)
         ctrLayout.visibility = View.INVISIBLE
-        //add to frame
+        //doAdd to frame
         view.addView(ctrView)
     }
 

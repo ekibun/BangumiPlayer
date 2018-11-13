@@ -1,4 +1,4 @@
-package soko.ekibun.bangumi.model
+package soko.ekibun.bangumiplayer.model
 
 import android.content.Context
 import android.net.Uri
@@ -11,6 +11,14 @@ import com.google.android.exoplayer2.trackselection.AdaptiveTrackSelection
 import com.google.android.exoplayer2.trackselection.DefaultTrackSelector
 import com.google.android.exoplayer2.trackselection.TrackSelectionArray
 import com.google.android.exoplayer2.upstream.*
+import retrofit2.Call
+import soko.ekibun.bangumi.api.ApiHelper
+import soko.ekibun.bangumi.api.bangumi.bean.Episode
+import soko.ekibun.bangumi.api.bangumi.bean.Subject
+import soko.ekibun.bangumi.ui.view.BackgroundWebView
+import soko.ekibun.bangumiplayer.App
+import soko.ekibun.bangumiplayer.parser.ParserInfo
+import soko.ekibun.bangumiplayer.provider.BaseProvider
 
 
 class VideoModel(private val context: Context, private val onAction: Listener) {
@@ -58,27 +66,40 @@ class VideoModel(private val context: Context, private val onAction: Listener) {
         })
         player
     }
-/*
-    fun playVideo(avBean: VideoInfo, surface: SurfaceView, callback: ()->Unit){
-        val videoCache = videoCacheModel.getCache(avBean)
-        if(videoCache != null){
-            play(videoCache.url, surface, true)
-        }else{
-            parseModel.getVideo(avBean) { url: String, _ ->
-                callback()
-                play(url, surface, false)
-            }
-        }
-    }*/
 
-    fun play(request: Pair<String,Map<String, String>>, surface: SurfaceView){
+    var videoInfoCall: Call<BaseProvider.VideoInfo>? = null
+    var videoCall: Call<Pair<String, Map<String,String>>>? = null
+    private val videoCacheModel by lazy{App.getVideoCacheModel(context)}
+    private val providerInfoModel by lazy{ProviderInfoModel(context)}
+    fun getVideo(episode: Episode, subject: Subject, webView: BackgroundWebView, onGetVideoInfo: (Boolean)->Unit, onGetVideo: (Pair<String, Map<String,String>>?, Boolean)->Unit) {
+        val videoCache = videoCacheModel.getCache(episode, subject)
+        if (videoCache != null) {
+            onGetVideoInfo(true)
+            onGetVideo(Pair(videoCache.url, videoCache.header), true)
+        } else {
+            val info = providerInfoModel.getInfos(subject)?.getDefaultProvider()?: return
+            videoInfoCall?.cancel()
+            webView.loadUrl("about:blank")
+            videoCall?.cancel()
+            videoInfoCall = ProviderModel.getVideoInfo(info, episode)
+            videoInfoCall?.enqueue(ApiHelper.buildCallback(context, { video ->
+                onGetVideoInfo(true)
+                videoCall = ParserModel.getVideo(webView, video, info.parser?: ParserInfo("", ""))
+                videoCall?.enqueue(ApiHelper.buildCallback(context, {
+                    onGetVideo(it, false)
+                }, { onGetVideo(null, false) }))
+            }, { onGetVideoInfo(false)}))
+        }
+    }
+
+    fun play(request: Pair<String,Map<String, String>>, surface: SurfaceView, useCache: Boolean = false){
         val url = request.first
         player.setVideoSurfaceView(surface)
         val httpSourceFactory= DefaultHttpDataSourceFactory("exoplayer", null, DefaultHttpDataSource.DEFAULT_CONNECT_TIMEOUT_MILLIS, DefaultHttpDataSource.DEFAULT_READ_TIMEOUT_MILLIS, true)
         request.second.forEach{
             httpSourceFactory.defaultRequestProperties.set(it.key, it.value)
         }
-        val dataSourceFactory = DefaultDataSourceFactory(surface.context, null, httpSourceFactory)
+        val dataSourceFactory = DefaultDataSourceFactory(surface.context, null, videoCacheModel.getDataSourceFactory(request.second, useCache))
         //DefaultHttpDataSourceFactory("exoplayer", null, DefaultHttpDataSource.DEFAULT_CONNECT_TIMEOUT_MILLIS, DefaultHttpDataSource.DEFAULT_READ_TIMEOUT_MILLIS, true)/*if(cache) videoCacheModel.getCacheDataSourceFactory(url) else videoCacheModel.factory*/
         val videoSource = if(url.contains("m3u8"))
             HlsMediaSource.Factory(dataSourceFactory).createMediaSource(Uri.parse(url))

@@ -30,12 +30,16 @@ class SubjectPresenter(private val context: VideoActivity){
     val subject by lazy{ JsonUtil.toEntity(context.intent.getStringExtra(VideoActivity.EXTRA_SUBJECT), Subject::class.java)!! }
     val token by lazy{ JsonUtil.toEntity(context.intent.getStringExtra(VideoActivity.EXTRA_TOKEN), AccessToken::class.java)!! }
 
-    init{
+    fun refreshSubject(){
         subjectView.updateSubject(subject)
         refreshLines(subject)
         refreshSubject(subject)
         refreshCollection(subject)
         refreshProgress(subject)
+    }
+
+    init{
+        refreshSubject()
 
         context.videoPresenter.doPlay = { position: Int ->
             val episode = subjectView.episodeDetailAdapter.data[position]?.t
@@ -46,18 +50,18 @@ class SubjectPresenter(private val context: VideoActivity){
                     val episodeNext = subjectView.episodeDetailAdapter.data.getOrNull(position+1)?.t
                     context.videoPresenter.prev = if(episodePrev == null || (episodePrev.status?:"") !in listOf("Air")) null else position - 1
                     context.videoPresenter.next = if(episodeNext == null || (episodeNext.status?:"") !in listOf("Air")) null else position + 1
-                    context.runOnUiThread { context.videoPresenter.play(episode, it, infos.providers) }
+                    context.runOnUiThread { context.videoPresenter.play(episode, subject, it, infos.providers) }
                 }//TODO ?:episode.url?.let{ WebActivity.launchUrl(context, it) }
             }
         }
 
-        subjectView.episodeAdapter.setOnItemClickListener { _, _, position ->
+        subjectView.episodeAdapter.setOnItemChildClickListener { _, _, position ->
             subjectView.episodeAdapter.data[position]?.let{episode->
                 context.videoPresenter.doPlay(subjectView.episodeDetailAdapter.data.indexOfFirst { it.t == episode })
             }
         }
 
-        subjectView.episodeAdapter.setOnItemLongClickListener { _, _, position ->
+        subjectView.episodeAdapter.setOnItemChildLongClickListener { _, _, position ->
             subjectView.episodeAdapter.data[position]?.let{ openEpisode(it, subject) }
             true
         }
@@ -124,8 +128,6 @@ class SubjectPresenter(private val context: VideoActivity){
 
     private var subjectCall : Call<Subject>? = null
     private fun refreshSubject(subject: Subject){
-        //context.data_layout.visibility = View.GONE
-        //context.subject_swipe.isRefreshing = true
         subjectCall?.cancel()
         subjectCall = api.subject(subject.id)
         subjectCall?.enqueue(ApiHelper.buildCallback(context, {

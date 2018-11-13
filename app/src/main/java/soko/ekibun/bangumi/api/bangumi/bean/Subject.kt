@@ -23,6 +23,8 @@ data class Subject(
         var topic: List<TopicBean>? = null,
         var blog: List<BlogBean>? = null
 ){
+    val title get() = if(name_cn.isNullOrEmpty()) name else name_cn
+
     data class BlogBean(
             var id: Int = 0,
             var url: String? = null,

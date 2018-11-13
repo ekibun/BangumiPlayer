@@ -3,7 +3,6 @@ package soko.ekibun.bangumiplayer.model
 import android.content.Context
 import android.content.SharedPreferences
 import android.preference.PreferenceManager
-import com.google.gson.reflect.TypeToken
 import soko.ekibun.bangumi.api.bangumi.bean.Subject
 import soko.ekibun.bangumi.util.JsonUtil
 import soko.ekibun.bangumiplayer.provider.ProviderInfoList

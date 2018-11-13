@@ -66,8 +66,7 @@
                         android:layout_height="0dp"
                         app:layout_constraintLeft_toLeftOf="parent"
                         app:layout_constraintRight_toRightOf="parent"
-                        app:layout_constraintTop_toTopOf="parent"
-                        app:layout_constraintDimensionRatio="h,16:9">
+                        app:layout_constraintTop_toTopOf="parent">
                 </FrameLayout>
                 <TextView
                         android:layout_width="wrap_content"

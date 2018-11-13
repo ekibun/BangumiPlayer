@@ -14,16 +14,15 @@ import kotlinx.android.synthetic.main.subject_episode.*
 import soko.ekibun.bangumi.api.bangumi.bean.Episode
 import soko.ekibun.bangumi.api.bangumi.bean.Subject
 import soko.ekibun.bangumi.api.bangumi.bean.SubjectProgress
-import soko.ekibun.bangumi.ui.subject.EpisodeAdapter
 import soko.ekibun.bangumi.ui.subject.SeasonAdapter
-import soko.ekibun.bangumi.ui.subject.SmallEpisodeAdapter
 import soko.ekibun.bangumi.util.JsonUtil
+import soko.ekibun.bangumiplayer.App
 import soko.ekibun.bangumiplayer.R
 
 
 class SubjectView(private val context: VideoActivity){
-    val episodeAdapter = SmallEpisodeAdapter()
-    val episodeDetailAdapter = EpisodeAdapter()
+    val episodeAdapter = SmallEpisodeAdapter(context)
+    val episodeDetailAdapter = EpisodeAdapter(context)
     val seasonAdapter = SeasonAdapter()
     val lineAdapter = LineAdapter()
     val seasonlayoutManager = LinearLayoutManager(context)
@@ -87,17 +86,21 @@ class SubjectView(private val context: VideoActivity){
                 .load(subject.images?.common)
                 .apply(RequestOptions.bitmapTransform(BlurTransformation(25, 8)))
                 .into(context.item_cover_blur)
-        ((subject.eps as? List<*>)?.map{ JsonUtil.toEntity(JsonUtil.toJson(it!!), Episode::class.java)!!})?.let{
-            updateEpisode(it)
-        }
+        val eps = ((subject.eps as? List<*>)?.map{ JsonUtil.toEntity(JsonUtil.toJson(it!!), Episode::class.java)!!})
+        val cacheEpisode = App.getVideoCacheModel(context).getBangumiVideoCacheList(subject)?.videoList?.map{it.value.video}?:ArrayList()
+        updateEpisode(eps, cacheEpisode)
     }
 
-    private fun updateEpisode(episodes: List<Episode>){
-        val eps = episodes.filter { (it.status?:"") in listOf("Air") }.size
-        context.episode_detail.text = context.getString(if(eps == episodes.size) R.string.phrase_full else R.string.phrase_updating, eps)
-
+    var bangumiEpisode: List<Episode> = ArrayList()
+    @SuppressLint("SetTextI18n")
+    fun updateEpisode(episodes: List<Episode>?, cacheEpisode: List<Episode>){
+        bangumiEpisode = episodes?: bangumiEpisode
+        val eps = bangumiEpisode.filter { (it.status?:"") in listOf("Air") }.size
+        context.episode_detail.text = (if(!cacheEpisode.isEmpty()) "已缓存 ${cacheEpisode.size} 话" else "") +
+                (if(!cacheEpisode.isEmpty() && !bangumiEpisode.isEmpty()) " / " else "")+
+                (if(!bangumiEpisode.isEmpty()) context.getString(if(eps == bangumiEpisode.size) R.string.phrase_full else R.string.phrase_updating, eps) else "")
         val maps = HashMap<Int, List<Episode>>()
-        episodes.forEach {
+        bangumiEpisode.plus(cacheEpisode).distinctBy { it.id }.forEach {
             maps[it.type] = (maps[it.type]?:ArrayList()).plus(it)
         }
         episodeAdapter.setNewData(null)

@@ -73,6 +73,7 @@
     <string name="upload_crash">上传崩溃日志</string>
     <string name="restart_app">重新启动应用</string>
     <string name="add_line">添加线路</string>
+    <string name="refresh">刷新</string>
 
     <string-array name="topic_list">
         <item>全部</item>

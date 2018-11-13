@@ -2,6 +2,7 @@ package soko.ekibun.bangumiplayer.ui.video
 
 import android.content.pm.ActivityInfo
 import android.graphics.Color
+import android.support.constraint.ConstraintLayout
 import android.support.design.widget.AppBarLayout
 import android.support.design.widget.Snackbar
 import android.view.View
@@ -12,10 +13,12 @@ import kotlinx.android.synthetic.main.video_player.*
 import retrofit2.Call
 import soko.ekibun.bangumi.api.ApiHelper
 import soko.ekibun.bangumi.api.bangumi.bean.Episode
-import soko.ekibun.bangumi.model.VideoModel
+import soko.ekibun.bangumi.api.bangumi.bean.Subject
+import soko.ekibun.bangumiplayer.model.VideoModel
 import soko.ekibun.bangumi.ui.view.BackgroundWebView
 import soko.ekibun.bangumi.ui.view.VideoController
 import soko.ekibun.bangumi.ui.view.controller.Controller
+import soko.ekibun.bangumi.util.AppUtil
 import soko.ekibun.bangumiplayer.model.ParserModel
 import soko.ekibun.bangumiplayer.model.ProviderModel
 import soko.ekibun.bangumiplayer.parser.ParserInfo
@@ -82,32 +85,36 @@ class VideoPresenter(private val context: VideoActivity){
     }
 
     val videoModel: VideoModel by lazy{
-        VideoModel(context, object : VideoModel.Listener{
+        VideoModel(context, object : VideoModel.Listener {
             override fun onReady(playWhenReady: Boolean) {
-                if(!controller.ctrVisibility){
+                if (!controller.ctrVisibility) {
                     controller.ctrVisibility = true
                     context.item_logcat.visibility = View.INVISIBLE
                     controller.doShowHide(false)
                 }
-                if(playWhenReady)
+                if (playWhenReady)
                     doPlayPause(true)
-                if(!controller.isShow){
+                if (!controller.isShow) {
                     context.item_mask.visibility = View.INVISIBLE
                     context.toolbar.visibility = View.INVISIBLE
                 }
                 controller.updateLoading(false)
             }
+
             override fun onBuffering() {
                 danmakuPresenter.view.pause()
                 controller.updateLoading(true)
             }
+
             override fun onEnded() {
                 doPlayPause(false)
             }
+
             override fun onVideoSizeChange(width: Int, height: Int, unappliedRotationDegrees: Int, pixelWidthHeightRatio: Float) {
-                context.video_surface.scaleX = Math.min(context.video_surface.measuredWidth.toFloat(), (context.video_surface.measuredHeight * width * pixelWidthHeightRatio/ height)) / context.video_surface.measuredWidth
-                context.video_surface.scaleY = Math.min(context.video_surface.measuredHeight.toFloat(), (context.video_surface.measuredWidth * height * pixelWidthHeightRatio/ width)) / context.video_surface.measuredHeight
+                context.video_surface.scaleX = Math.min(context.video_surface.measuredWidth.toFloat(), (context.video_surface.measuredHeight * width * pixelWidthHeightRatio / height)) / context.video_surface.measuredWidth
+                context.video_surface.scaleY = Math.min(context.video_surface.measuredHeight.toFloat(), (context.video_surface.measuredWidth * height * pixelWidthHeightRatio / width)) / context.video_surface.measuredHeight
             }
+
             override fun onError(error: ExoPlaybackException) {
                 exception = error.sourceException
                 Snackbar.make(context.root_layout, exception.toString(), Snackbar.LENGTH_SHORT).show()
@@ -117,6 +124,13 @@ class VideoPresenter(private val context: VideoActivity){
 
     var offset = 0
     init{
+        val screenSize = AppUtil.getScreenSize(context)
+        val lp = context.player_container.layoutParams as ConstraintLayout.LayoutParams
+        lp.dimensionRatio = "h,${screenSize.height}:${screenSize.width}"
+
+        val lp_cf = context.controller_frame.layoutParams as ConstraintLayout.LayoutParams
+        lp_cf.dimensionRatio = "h,${screenSize.height}:${screenSize.width}"
+
         context.app_bar.addOnOffsetChangedListener(AppBarLayout.OnOffsetChangedListener{ _, verticalOffset ->
             val visible = if(verticalOffset != 0 || controller.isShow || context.video_surface_container.visibility != View.VISIBLE) View.VISIBLE else View.INVISIBLE
             offset = verticalOffset
@@ -170,8 +184,8 @@ class VideoPresenter(private val context: VideoActivity){
     var doPlay: (Int)->Unit = {}
     var next: Int? = null
     var prev: Int? = null
-    var videoCall: Call<BaseProvider.VideoInfo>? = null
-    fun play(episode: Episode, info: ProviderInfo, infos: List<ProviderInfo>){
+    //var videoCall: Call<BaseProvider.VideoInfo>? = null
+    fun play(episode: Episode, subject: Subject, info: ProviderInfo, infos: List<ProviderInfo>){
         context.systemUIPresenter.appbarCollapsible(false)
         loadVideoInfo = null
         loadVideo = null
@@ -190,9 +204,17 @@ class VideoPresenter(private val context: VideoActivity){
         playLoopTask?.cancel()
         //context.nested_scroll.tag = true
         danmakuPresenter.view.pause()
-        videoCall?.cancel()
+        //videoCall?.cancel()
         webView.loadUrl("about:blank")
-        videoCall = ProviderModel.getVideoInfo(info, episode)
+        videoModel.getVideo(episode, subject, webView, {
+            loadVideoInfo = it
+            if(loadVideoInfo == true)
+            context.runOnUiThread { danmakuPresenter.loadDanmaku(infos.filter { it.loadDanmaku && ProviderModel.getProvider(it.siteId)?.hasDanmaku == true }, episode) }
+        }){request, useCache ->
+            loadVideo = request != null
+            if(request != null) videoModel.play(request, context.video_surface, useCache)
+        }
+       /* videoCall = ProviderModel.getVideoInfo(info, episode)
         videoCall?.enqueue(ApiHelper.buildCallback(context,{video->
             context.runOnUiThread { ParserModel.getVideo(webView, video, info.parser?: ParserInfo("", "")).enqueue(ApiHelper.buildCallback(context, {
                 context.runOnUiThread{
@@ -201,6 +223,7 @@ class VideoPresenter(private val context: VideoActivity){
                 } }, {})) }
             context.runOnUiThread { danmakuPresenter.loadDanmaku(infos.filter { it.loadDanmaku && ProviderModel.getProvider(it.siteId)?.hasDanmaku == true }, episode) }
         },{ loadVideoInfo = it == null }))
+        */
     }
 
     private var playLoopTask: TimerTask? = null

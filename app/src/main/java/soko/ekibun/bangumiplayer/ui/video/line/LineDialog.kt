@@ -93,7 +93,7 @@ object LineDialog{
             parserPopList.listView?.setOnItemClickListener { _, _, position, _ ->
                 parserPopList.dismiss()
                 if(position == parsers.size -1 ){
-                    //add
+                    //doAdd
                     ParserDialog.showDialog(context, viewGroup, null){
                         if(it == null) return@showDialog
                         parserInfoModel.saveInfo(it)

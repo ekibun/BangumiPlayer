@@ -1,9 +1,7 @@
 package soko.ekibun.bangumiplayer.ui.video
 
 import android.graphics.Color
-import master.flame.danmaku.controller.DrawHandler
 import master.flame.danmaku.danmaku.model.BaseDanmaku
-import master.flame.danmaku.danmaku.model.DanmakuTimer
 import master.flame.danmaku.danmaku.model.IDisplayer
 import master.flame.danmaku.danmaku.model.android.DanmakuContext
 import master.flame.danmaku.ui.widget.DanmakuView
@@ -57,13 +55,13 @@ class DanmakuPresenter(val view: DanmakuView,
             val call = ProviderModel.getDanmakuKey(videoInfo)
             call.enqueue(ApiHelper.buildCallback(view.context, {
                 danmakuKeys[videoInfo] = it
-                add(Math.max(lastPos, 0) * 1000L * 300L, videoInfo, it)
+                doAdd(Math.max(lastPos, 0) * 1000L * 300L, videoInfo, it)
             }, {}))
             danmakuCalls.add(call)
         }, {}))
     }
 
-    fun add(pos: Long, videoInfo: BaseProvider.VideoInfo, key: String){
+    fun doAdd(pos: Long, videoInfo: BaseProvider.VideoInfo, key: String){
         ProviderModel.getDanmaku(videoInfo, key, (pos / 1000).toInt()).enqueue(ApiHelper.buildCallback(view.context, {
             val set = danmakus.getOrPut(videoInfo){ HashSet() }
             val oldSet = set.toList()
@@ -86,7 +84,7 @@ class DanmakuPresenter(val view: DanmakuView,
         if(lastPos == -1 || lastPos != newPos){
             lastPos = newPos
             danmakuKeys.forEach { videoInfo, key ->
-                add(pos, videoInfo, key)
+                doAdd(pos, videoInfo, key)
             }
         }
     }

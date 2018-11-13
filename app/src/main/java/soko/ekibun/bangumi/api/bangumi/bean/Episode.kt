@@ -19,6 +19,7 @@ data class Episode(
         var status: String? = null,
         var progress: SubjectProgress.EpisodeProgress? = null
 ) {
+    val title get() = if(name_cn.isNullOrEmpty()) name else name_cn
     /**
      * id : 4835
      * url : http://bgm.tv/ep/4835

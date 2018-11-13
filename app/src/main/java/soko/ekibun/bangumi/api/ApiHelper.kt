@@ -54,6 +54,7 @@ object ApiHelper {
 
     fun <T, U> buildBridgeCall(first: Call<T>,  then: (T)->Call<U>): Call<U>{
         return object: retrofit2.Call<U>{
+            var _then: Call<U>? = null
             override fun execute(): retrofit2.Response<U> {
                 val t = first.execute()
                 return if(t.isSuccessful){
@@ -69,14 +70,19 @@ object ApiHelper {
                         callback.onFailure(clone(), t)
                     }
                     override fun onResponse(call: Call<T>, response: Response<T>) {
-                        response.body()?.let { then(it).enqueue(callback) }
+                        response.body()?.let {
+                            _then = then(it)
+                            _then?.enqueue(callback) }
                     }
                 })
             }
             override fun isExecuted(): Boolean { return true }
             override fun clone(): retrofit2.Call<U> { return this }
-            override fun isCanceled(): Boolean { return false }
-            override fun cancel() {}
+            override fun isCanceled(): Boolean { return first.isCanceled || _then?.isCanceled == true }
+            override fun cancel() {
+                first.cancel()
+                _then?.cancel()
+            }
             override fun request(): Request? { return null }
         }
     }
@@ -84,12 +90,14 @@ object ApiHelper {
     fun <T> buildHttpCall(url: String, header: Map<String, String> = HashMap(), body: RequestBody? = null, converter: (okhttp3.Response)->T): Call<T>{
         val uiHandler = Handler(Looper.getMainLooper())
         return object: retrofit2.Call<T>{
+            var _callback: retrofit2.Callback<T>? = null
             private val retrofitCall = this
             val okHttpCall = HttpUtil.getCall(url, header, body)
             fun createResponse(response: okhttp3.Response): retrofit2.Response<T>{
                 return retrofit2.Response.success(converter(response))
             }
             override fun enqueue(callback: retrofit2.Callback<T>) {
+                _callback = callback
                 okHttpCall.enqueue(object: okhttp3.Callback {
                     override fun onFailure(call: okhttp3.Call, e: IOException) {
                         uiHandler.post { callback.onFailure(retrofitCall, e) }
@@ -108,7 +116,10 @@ object ApiHelper {
             override fun isExecuted(): Boolean { return okHttpCall.isExecuted }
             override fun clone(): retrofit2.Call<T> { return this }
             override fun isCanceled(): Boolean { return okHttpCall.isCanceled }
-            override fun cancel() { okHttpCall.cancel() }
+            override fun cancel() {
+                okHttpCall.cancel()
+                _callback?.onFailure(retrofitCall, Exception("Canceled"))
+            }
             override fun execute(): retrofit2.Response<T> {return createResponse(okHttpCall.execute()) }
             override fun request(): Request { return okHttpCall.request() }
 
@@ -117,7 +128,9 @@ object ApiHelper {
 
     fun buildWebViewCall(webView: BackgroundWebView, url: String, header: Map<String, String> = HashMap(), js: String = ""): Call<Pair<String,Map<String, String>>>{
         return object: retrofit2.Call<Pair<String,Map<String, String>>>{
+            var _callback: retrofit2.Callback<Pair<String,Map<String, String>>>? = null
             override fun enqueue(callback: retrofit2.Callback<Pair<String,Map<String, String>>>) {
+                _callback = callback
                 webView.onCatchVideo={
                     Log.v("video", it.url.toString())
                     callback.onResponse(this, Response.success(Pair(it.url.toString(),it.requestHeaders)))
@@ -139,7 +152,10 @@ object ApiHelper {
             override fun isExecuted(): Boolean { return webView.url == "about:blank" }
             override fun clone(): retrofit2.Call<Pair<String,Map<String, String>>> { return this }
             override fun isCanceled(): Boolean { return webView.url == "about:blank" }
-            override fun cancel() { webView.loadUrl("about:blank") }
+            override fun cancel() {
+                webView.loadUrl("about:blank")
+                _callback?.onFailure(this, Exception("Canceled"))
+            }
             override fun execute(): retrofit2.Response<Pair<String,Map<String, String>>>? {return null }
             override fun request(): Request { return Request.Builder().url(url).build() }
 
@@ -148,11 +164,14 @@ object ApiHelper {
 
     fun <T> buildGroupCall(calls: Array<Call<T>>): Call<T>{
         return object: retrofit2.Call<T>{
-            override fun enqueue(callback: retrofit2.Callback<T>) { calls.forEach { it.enqueue(callback) } }
+            override fun enqueue(callback: retrofit2.Callback<T>) {
+                calls.forEach { it.enqueue(callback) } }
             override fun isExecuted(): Boolean { return calls.count { it.isExecuted } == calls.size }
             override fun clone(): retrofit2.Call<T> { return this }
             override fun isCanceled(): Boolean { return calls.count { it.isCanceled } == calls.size }
-            override fun cancel() { calls.forEach { it.cancel() } }
+            override fun cancel() {
+                calls.forEach { it.cancel() }
+            }
             override fun execute(): retrofit2.Response<T>? {
                 calls.forEach { it.execute() }
                 return null }

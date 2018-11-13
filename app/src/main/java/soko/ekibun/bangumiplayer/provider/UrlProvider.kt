@@ -33,7 +33,7 @@ class UrlProvider: BaseProvider {
     override fun getVideo(webView: BackgroundWebView, video: BaseProvider.VideoInfo): Call<Pair<String, Map<String, String>>> {
         val ids = video.id.split("\n")
         val id = ids.getOrNull(0)?:""
-        val isFile = !id.startsWith("http") || !(ids.getOrNull(1)?:"").isEmpty()
+        val isFile = id.startsWith("/") || !(ids.getOrNull(1)?:"").isEmpty()
         val header = HashMap<String, String>()
         header["referer"] = video.url
         if(isFile) return ApiHelper.buildCall { Pair(video.url, HashMap<String, String>()) }
