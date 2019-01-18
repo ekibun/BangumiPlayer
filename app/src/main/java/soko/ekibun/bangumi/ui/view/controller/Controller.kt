@@ -26,7 +26,7 @@ abstract class Controller(layoutRes: Int, view: ViewGroup) {
     abstract val ctrDanmaku: ImageButton?
 
     enum class Action {
-        PLAY_PAUSE, FULLSCREEN, NEXT, DANMAKU, SEEK_TO, SHOW, HIDE, TITLE
+        PLAY_PAUSE, FULLSCREEN, NEXT, DANMAKU, SEEK_TO, SHOW, HIDE, TITLE, DANMAKU_SETTING
     }
 
     fun initView(view: ViewGroup, onClick:(Action)->Unit, onSeekBarChangeListener: SeekBar.OnSeekBarChangeListener){
@@ -41,6 +41,10 @@ abstract class Controller(layoutRes: Int, view: ViewGroup) {
         }
         ctrDanmaku?.setOnClickListener {
             onClick(Action.DANMAKU)
+        }
+        ctrDanmaku?.setOnLongClickListener {
+            onClick(Action.DANMAKU_SETTING)
+            true
         }
         ctrTitleText?.setOnClickListener {
             onClick(Action.TITLE)

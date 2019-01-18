@@ -8,13 +8,22 @@ import android.webkit.*
 
 class BackgroundWebView(context: Context): WebView(context) {
     var onPageFinished = {_:String?->}
-    var onCatchVideo={_: WebResourceRequest ->}
+    var onInterceptRequest={_: WebResourceRequest ->}
 
     var uiHandler: Handler = Handler{true}
 
     override fun loadUrl(url: String?) {
         Log.v("loadUrl", url)
         super.loadUrl(url)
+    }
+
+    fun reset(){
+        uiHandler.post{
+            onPause()
+            clearCache(true)
+            clearHistory()
+            loadUrl("about:blank")
+        }
     }
 
     init{
@@ -33,16 +42,7 @@ class BackgroundWebView(context: Context): WebView(context) {
             }
             override fun shouldInterceptRequest(view: WebView, request: WebResourceRequest): WebResourceResponse? {
                 Log.v("loadres", request.url.toString() +" " + request.requestHeaders.toString())
-                if (request.requestHeaders["Range"] != null || request.url.toString().contains("//player.acfun.cn/route_m3u8")) {
-                    onCatchVideo(request)
-                    uiHandler.post{
-                        view.onPause()
-                        view.clearCache(true)
-                        view.clearHistory()
-                        view.loadUrl("about:blank")
-                    }
-                    return null
-                }
+                onInterceptRequest(request)
                 return super.shouldInterceptRequest(view, request)
             }
         }

@@ -1,12 +1,13 @@
 package soko.ekibun.bangumi.api
 
-
 import android.app.Activity
 import android.content.Context
 import android.os.Handler
 import android.os.Looper
 import android.support.design.widget.Snackbar
 import android.util.Log
+import android.webkit.CookieManager
+import android.webkit.WebResourceRequest
 import okhttp3.Request
 import okhttp3.RequestBody
 import retrofit2.Call
@@ -126,15 +127,20 @@ object ApiHelper {
         }
     }
 
-    fun buildWebViewCall(webView: BackgroundWebView, url: String, header: Map<String, String> = HashMap(), js: String = ""): Call<Pair<String,Map<String, String>>>{
+    fun buildWebViewCall(webView: BackgroundWebView, url: String, header: Map<String, String> = HashMap(), js: String = "", onInterceptRequest: ((WebResourceRequest, retrofit2.Callback<Pair<String,Map<String, String>>>)-> Boolean)? = null): Call<Pair<String,Map<String, String>>>{
         return object: retrofit2.Call<Pair<String,Map<String, String>>>{
-            var _callback: retrofit2.Callback<Pair<String,Map<String, String>>>? = null
+            var callback: retrofit2.Callback<Pair<String,Map<String, String>>>? = null
             override fun enqueue(callback: retrofit2.Callback<Pair<String,Map<String, String>>>) {
-                _callback = callback
-                webView.onCatchVideo={
-                    Log.v("video", it.url.toString())
-                    callback.onResponse(this, Response.success(Pair(it.url.toString(),it.requestHeaders)))
-                    webView.onCatchVideo={}
+                this.callback = callback
+                webView.onInterceptRequest = {request ->
+                    if (request.requestHeaders["Range"] != null || onInterceptRequest?.invoke(request, callback) == true) {
+                        val headers = HashMap(request.requestHeaders)
+                        headers["cookie"] = CookieManager.getInstance().getCookie(request.url.host?.toString())?:""
+                        Log.v("video", "${request.url} $headers")
+                        callback.onResponse(this, Response.success(Pair(request.url.toString(), headers)))
+                        webView.onInterceptRequest = {}
+                        webView.reset()
+                    }
                 }
                 webView.onPageFinished={
                     webView.evaluateJavascript(js){
@@ -147,14 +153,16 @@ object ApiHelper {
                 val map = HashMap<String, String>()
                 map["referer"]=url
                 map.putAll(header)
-                webView.loadUrl(url, map)
+                webView.uiHandler.post {
+                    webView.loadUrl(url, map)
+                }
             }
             override fun isExecuted(): Boolean { return webView.url == "about:blank" }
             override fun clone(): retrofit2.Call<Pair<String,Map<String, String>>> { return this }
             override fun isCanceled(): Boolean { return webView.url == "about:blank" }
             override fun cancel() {
                 webView.loadUrl("about:blank")
-                _callback?.onFailure(this, Exception("Canceled"))
+                callback?.onFailure(this, Exception("Canceled"))
             }
             override fun execute(): retrofit2.Response<Pair<String,Map<String, String>>>? {return null }
             override fun request(): Request { return Request.Builder().url(url).build() }

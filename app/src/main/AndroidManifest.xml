@@ -8,7 +8,7 @@
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"/>
 
     <application
-            android:name=".App"
+            android:name="soko.ekibun.bangumi.App"
             android:allowBackup="true"
             android:icon="@mipmap/ic_launcher"
             android:label="@string/app_name"
@@ -18,22 +18,29 @@
             android:theme="@style/AppTheme"
             tools:ignore="UnusedAttribute">
         <activity
-                android:name=".ui.video.VideoActivity"
+                android:name="soko.ekibun.bangumi.ui.video.VideoActivity"
                 android:configChanges="screenSize|smallestScreenSize|screenLayout|orientation|uiMode"
-                android:exported="true"
                 android:supportsPictureInPicture="true"
                 tools:targetApi="n">
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW"/>
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSER" />
+                <data
+                        android:scheme="bangumi"
+                        android:host="player"/>
+            </intent-filter>
         </activity>
         <activity android:name="soko.ekibun.bangumi.ui.crash.CrashActivity">
         </activity>
         <service
-                android:name=".service.DownloadService"
+                android:name="soko.ekibun.bangumi.service.DownloadService"
                 android:enabled="true"
                 android:exported="false">
         </service>
         <provider
                 android:authorities="soko.ekibun.bangumiplayer"
-                android:name=".model.ContentProviderModel"
+                android:name="soko.ekibun.bangumi.model.ContentProviderModel"
                 android:exported="true"/>
     </application>
 

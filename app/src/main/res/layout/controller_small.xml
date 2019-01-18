@@ -19,18 +19,27 @@
                 android:layout_margin="4dp"
                 android:background="?attr/selectableItemBackgroundBorderless"
                 android:contentDescription="@string/play_pause"/>
-        <TextView
-                android:id="@+id/ctr_time"
+        <ImageButton
+                android:id="@+id/ctr_next"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:textColor="@android:color/white"
-                android:layout_gravity="center"
-                android:layout_margin="4dp"/>
+                android:src="@drawable/ic_next"
+                android:padding="6dp"
+                android:layout_marginTop="4dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="@string/next_video"/>
         <SeekBar
                 android:layout_width="0dp"
                 android:layout_height="match_parent"
                 android:id="@+id/ctr_seek"
                 android:layout_weight="1"/>
+        <TextView
+                android:id="@+id/ctr_time"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textColor="@android:color/white"
+                android:textSize="@dimen/textSizeSmall"
+                android:layout_gravity="center"/>
         <ImageButton
                 android:id="@+id/ctr_fullscreen"
                 android:layout_width="wrap_content"

@@ -52,4 +52,7 @@ dependencies {
     implementation 'com.github.siyamed:android-shape-imageview:0.9.3'
     implementation 'com.zhy:base-adapter:3.0.3'
     implementation 'com.github.ctiao:DanmakuFlameMaster:0.9.25'
+    implementation 'net.opacapp:multiline-collapsingtoolbar:27.1.1'
+    implementation 'com.squareup.retrofit2:converter-scalars:2.1.0'
+    implementation 'com.github.chrisbanes:PhotoView:2.1.4'
 }
