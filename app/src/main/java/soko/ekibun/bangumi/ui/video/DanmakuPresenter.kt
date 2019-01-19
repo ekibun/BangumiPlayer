@@ -112,7 +112,7 @@ class DanmakuPresenter(val view: DanmakuView, val context: VideoActivity,
             0 -> "1/4屏"
             1 -> "半屏"
             2 -> "3/4屏"
-            3 -> "不重叠"
+            3 -> "满屏"
             else -> "无限"
         }
         maxLinesPair[BaseDanmaku.TYPE_SCROLL_RL] = Math.ceil(view.height / (50 * sizeScale * (context.danmaku_size_seek.progress + 50) / 100.0) * when(context.danmaku_loc_seek.progress) {

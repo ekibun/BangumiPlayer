@@ -50,14 +50,15 @@ class EpisodeAdapter(val context: VideoActivity, data: MutableList<SectionEntity
             getViewByPosition(context.episode_detail_list, index, R.id.item_layout)?.let{
                 it.item_download_info.text = "获取视频信息"
             }
-            context.videoPresenter.videoModel.getVideo(item.t, subject, context.videoPresenter.webView, {loaded->
+            context.videoPresenter.videoModel.getVideo(item.t, subject, BackgroundWebView(helper.itemView.context), {loaded->
                 getViewByPosition(context.episode_detail_list, index, R.id.item_layout)?.let{
                     it.item_download_info.text = if(loaded  == true)"解析视频地址" else ""
                 }
             }){request, _ ->
                 helper.itemView.post {
                     getViewByPosition(context.episode_detail_list, index, R.id.item_layout)?.let{
-                        it.item_download_info.text = ""
+                        val downloader = App.getVideoCacheModel(helper.itemView.context).getDownloader(item.t, subject)
+                        updateDownload(helper.itemView, downloader?.downloadPercentage?: Float.NaN, downloader?.downloadedBytes?:0L, downloader != null)
                     }
                 }
                 if(request == null || request.first.startsWith("/")) return@getVideo

@@ -33,8 +33,6 @@ class VideoPresenter(private val context: VideoActivity){
         }
     }
 
-    val webView: BackgroundWebView by lazy{ BackgroundWebView(context) }
-
     val controller: VideoController by lazy{
         VideoController(context.controller_frame, { action: Controller.Action, param: Any ->
             when (action) {
@@ -214,7 +212,7 @@ class VideoPresenter(private val context: VideoActivity){
         //context.nested_scroll.tag = true
         danmakuPresenter.view.pause()
         //videoCall?.cancel()
-        videoModel.getVideo(episode, subject, webView, {
+        videoModel.getVideo(episode, subject, BackgroundWebView(context), {
             loadVideoInfo = it
             if(loadVideoInfo == true)
             context.runOnUiThread { danmakuPresenter.loadDanmaku(infos.filter { it.loadDanmaku && ProviderModel.getProvider(it.siteId)?.hasDanmaku == true }, episode) }
@@ -222,16 +220,6 @@ class VideoPresenter(private val context: VideoActivity){
             if(useCache != null) loadVideo = request != null
             if(request != null && useCache != null) videoModel.play(request, context.video_surface, useCache)
         })
-       /* videoCall = ProviderModel.getVideoInfo(info, episode)
-        videoCall?.enqueue(ApiHelper.buildCallback(context,{video->
-            context.runOnUiThread { ParserModel.getVideo(webView, video, info.parser?: ParserInfo("", "")).enqueue(ApiHelper.buildCallback(context, {
-                context.runOnUiThread{
-                    it?.let{videoModel.play(it, context.video_surface)}
-                    loadVideo = true
-                } }, {})) }
-            context.runOnUiThread { danmakuPresenter.loadDanmaku(infos.filter { it.loadDanmaku && ProviderModel.getProvider(it.siteId)?.hasDanmaku == true }, episode) }
-        },{ loadVideoInfo = it == null }))
-        */
     }
 
     private var playLoopTask: TimerTask? = null
