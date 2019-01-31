@@ -1,12 +1,10 @@
 package soko.ekibun.bangumi.ui.video
 
 import android.annotation.SuppressLint
-import android.app.AlertDialog
-import android.content.DialogInterface
-import android.view.View
-import android.widget.AdapterView
+import android.app.Dialog
+import android.support.v7.widget.PopupMenu
+import android.view.*
 import kotlinx.android.synthetic.main.activity_video.*
-import kotlinx.android.synthetic.main.dialog_edit_subject.view.*
 import kotlinx.android.synthetic.main.dialog_episode.view.*
 import kotlinx.android.synthetic.main.subject_detail.*
 import retrofit2.Call
@@ -19,6 +17,7 @@ import soko.ekibun.bangumi.util.JsonUtil
 import soko.ekibun.bangumiplayer.R
 import soko.ekibun.bangumi.model.ProviderInfoModel
 import soko.ekibun.bangumi.provider.ProviderInfoList
+import soko.ekibun.bangumi.ui.subject.EditSubjectDialog
 import soko.ekibun.bangumi.ui.video.line.LineDialog
 
 
@@ -62,7 +61,8 @@ class SubjectPresenter(private val context: VideoActivity){
         }
 
         subjectView.episodeAdapter.setOnItemChildLongClickListener { _, _, position ->
-            subjectView.episodeAdapter.data[position]?.let{ openEpisode(it, subject) }
+            val eps = subjectView.episodeAdapter.data.subList(0, position + 1)
+            subjectView.episodeAdapter.data[position]?.let{ openEpisode(it, subject, eps) }
             true
         }
 
@@ -71,7 +71,8 @@ class SubjectPresenter(private val context: VideoActivity){
         }
 
         subjectView.episodeDetailAdapter.setOnItemLongClickListener { _, _, position ->
-            subjectView.episodeDetailAdapter.data[position]?.t?.let{ openEpisode(it, subject) }
+            val eps = subjectView.episodeDetailAdapter.data.subList(0, position + 1).filter { !it.isHeader }.map { it.t }
+            subjectView.episodeDetailAdapter.data[position]?.t?.let{ openEpisode(it, subject, eps) }
             true
         }
 
@@ -88,7 +89,7 @@ class SubjectPresenter(private val context: VideoActivity){
     }
 
     @SuppressLint("SetTextI18n")
-    private fun openEpisode(episode: Episode, subject: Subject){
+    private fun openEpisode(episode: Episode, subject: Subject, eps: List<Episode>){
         val view = context.layoutInflater.inflate(R.layout.dialog_episode, context.item_detail, false)
         view.item_episode_title.text = if(episode.name_cn.isNullOrEmpty()) episode.name else episode.name_cn
         view.item_episode_desc.text = (if(episode.name_cn.isNullOrEmpty()) "" else episode.name + "\n") +
@@ -98,22 +99,45 @@ class SubjectPresenter(private val context: VideoActivity){
         view.item_episode_title.setOnClickListener {
             //WebActivity.launchUrl(context, episode.url)
         }
-        view.item_episode_status.setSelection(intArrayOf(3,1,0,2)[episode.progress?.status?.id?:0])
+        when(episode.progress?.status?.id?:0){
+            1 -> view.radio_queue.isChecked = true
+            2 -> view.radio_watch.isChecked = true
+            3 -> view.radio_drop.isChecked = true
+            else -> view.radio_remove.isChecked = true
+        }
        if(!token.access_token.isNullOrEmpty()) {
-            view.item_episode_status.onItemSelectedListener = object: AdapterView.OnItemSelectedListener{
-            override fun onNothingSelected(parent: AdapterView<*>?) {}
-            override fun onItemSelected(parent: AdapterView<*>?, v: View?, position: Int, id: Long) {
-                val newStatus = SubjectProgress.EpisodeProgress.EpisodeStatus.types[position]
-                api.updateProgress(episode.id, newStatus, token.access_token ?: "").enqueue(
-                        ApiHelper.buildCallback(context, {
-                            refreshProgress(subject)
-                        }, {}))
-            } }
+           view.item_episode_status.setOnCheckedChangeListener { _, checkedId ->
+               val newStatus = when(checkedId){
+                   R.id.radio_watch_to ->{
+                       val epIds = eps.map{ it.id.toString()}.reduce { acc, s -> "$acc,$s" }
+                       api.updateProgress(eps.last().id, SubjectProgress.EpisodeProgress.EpisodeStatus.WATCH, token.access_token ?: "", epIds).enqueue(
+                               ApiHelper.buildCallback(context, {
+                                   refreshProgress(subject)
+                               }, {}))
+                       return@setOnCheckedChangeListener }
+                   R.id.radio_watch -> SubjectProgress.EpisodeProgress.EpisodeStatus.WATCH
+                   R.id.radio_queue -> SubjectProgress.EpisodeProgress.EpisodeStatus.QUEUE
+                   R.id.radio_drop -> SubjectProgress.EpisodeProgress.EpisodeStatus.DROP
+                   else -> SubjectProgress.EpisodeProgress.EpisodeStatus.REMOVE }
+               api.updateProgress(episode.id, newStatus, token.access_token ?: "").enqueue(
+                       ApiHelper.buildCallback(context, {
+                           refreshProgress(subject)
+                       }, {}))
+           }
         } else {
             view.item_episode_status.visibility = View.GONE
         }
-        AlertDialog.Builder(context)
-                .setView(view).show()
+        val dialog = Dialog(context, R.style.AppTheme_Dialog_Floating)
+        dialog.requestWindowFeature(Window.FEATURE_NO_TITLE)
+        dialog.setContentView(view)
+        dialog.window?.setGravity(Gravity.BOTTOM)
+        dialog.window?.attributes?.let{
+            it.width = ViewGroup.LayoutParams.MATCH_PARENT
+            dialog.window?.attributes = it
+        }
+        dialog.window?.setWindowAnimations(R.style.AnimDialog)
+        dialog.setCanceledOnTouchOutside(true)
+        dialog.show()
     }
 
     private fun refreshProgress(subject: Subject){
@@ -185,13 +209,16 @@ class SubjectPresenter(private val context: VideoActivity){
                 refreshLines(subject)
             }
             subjectView.lineAdapter.setOnItemLongClickListener { _, _, position ->
-                LineDialog.showDialog(context, context.root_layout, subject, it.providers[position]){ info->
-                    if(info == null){
-                        it.providers.removeAt(position)
-                        it.defaultProvider -= if(it.defaultProvider > position) 1 else 0
-                        it.defaultProvider = Math.max(0, Math.min(it.providers.size -1, it.defaultProvider))
-                    } else
-                        it.providers[position] = info
+                LineDialog.showDialog(context, context.root_layout, subject, it.providers[position]){ info, newLine->
+                    when {
+                        info == null -> {
+                            it.providers.removeAt(position)
+                            it.defaultProvider -= if(it.defaultProvider > position) 1 else 0
+                            it.defaultProvider = Math.max(0, Math.min(it.providers.size -1, it.defaultProvider))
+                        }
+                        newLine -> it.providers.add(info)
+                        else -> it.providers[position] = info
+                    }
                     providerInfoModel.saveInfos(subject, it)
                     refreshLines(subject)
                 }
@@ -200,10 +227,10 @@ class SubjectPresenter(private val context: VideoActivity){
         }
 
         context.item_lines.setOnClickListener{
-            LineDialog.showDialog(context, context.root_layout, subject){
-                if(it == null) return@showDialog
+            LineDialog.showDialog(context, context.root_layout, subject){info, _->
+                if(info == null) return@showDialog
                 val providerInfos = providerInfoModel.getInfos(subject)?: ProviderInfoList()
-                providerInfos.providers.add(it)
+                providerInfos.providers.add(info)
                 providerInfoModel.saveInfos(subject, providerInfos)
                 refreshLines(subject)
             }
@@ -221,27 +248,28 @@ class SubjectPresenter(private val context: VideoActivity){
                     context.item_collect_info.text = status.name?:""
                 }
 
-                context.item_collect.setOnClickListener {
-                    val view = context.layoutInflater.inflate(R.layout.dialog_edit_subject, context.item_collect, false)
-                    if(status != null){
-                        view.item_status.setSelection(status.id-1)
-                        view.item_rating.rating = body.rating.toFloat()
-                        view.item_comment.setText(body.comment)
-                        view.item_private.isChecked = body.private == 1
+                context.item_collect.setOnClickListener{
+                    val popupMenu = PopupMenu(context, context.item_collect)
+                    val statusList = context.resources.getStringArray(R.array.collection_status)
+                    statusList.forEachIndexed { index, s ->
+                        popupMenu.menu.add(Menu.NONE, Menu.FIRST + index, index, s) }
+                    popupMenu.setOnMenuItemClickListener {menu->
+                        val newStatus = CollectionStatusType.status[menu.itemId - Menu.FIRST]
+                        val newTags = if(body.tag?.isNotEmpty() == true) body.tag.reduce { acc, s -> "$acc $s" } else ""
+                        api.updateCollectionStatus(subject.id, token.access_token?:"",
+                                newStatus, newTags, body.comment, body.rating, body.private).enqueue(ApiHelper.buildCallback(context,{},{
+                            refreshCollection(subject)
+                        }))
+                        false
                     }
-                    AlertDialog.Builder(context)
-                            .setView(view)
-                            .setPositiveButton("提交"){ _: DialogInterface, _: Int ->
-                                val newStatus = CollectionStatusType.status[view.item_status.selectedItemId.toInt()]
-                                val newRating = view.item_rating.rating.toInt()
-                                val newComment = view.item_comment.text.toString()
-                                val newPrivacy = if(view.item_private.isChecked) 1 else 0
-                                //Log.v("new", "$new_status,$new_rating,$new_comment")
-                                api.updateCollectionStatus(subject.id, token.access_token?:"",
-                                        newStatus, newComment, newRating, newPrivacy).enqueue(ApiHelper.buildCallback(context,{},{
-                                    refreshCollection(subject)
-                                }))
-                            }.show()
+                    popupMenu.show()
+                }
+
+                context.item_collect.setOnLongClickListener {
+                    EditSubjectDialog.showDialog(context, subject, body, "", token.access_token?:""){
+                        refreshCollection(subject)
+                    }
+                    true
                 }
             }, {}))
         }

@@ -33,8 +33,7 @@ import soko.ekibun.bangumi.service.DownloadService
 class VideoActivity : AppCompatActivity() {
     val videoPresenter: VideoPresenter by lazy { VideoPresenter(this) }
     val systemUIPresenter: SystemUIPresenter by lazy{ SystemUIPresenter(this) }
-
-    private val subjectPresenter: SubjectPresenter by lazy{ SubjectPresenter(this) }
+    val subjectPresenter: SubjectPresenter by lazy{ SubjectPresenter(this) }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -239,13 +238,13 @@ class VideoActivity : AppCompatActivity() {
         private const val REQUEST_STORAGE_CODE = 1
         private const val REQUEST_FILE_CODE = 2
 
-        fun startActivity(context: Context, subject: Subject, token: AccessToken?) {
-            context.startActivity(parseIntent(context, subject, token))
+        fun startActivity(context: Context, subject: Subject, token: AccessToken?, newTask:Boolean = false) {
+            context.startActivity(parseIntent(context, subject, token, newTask))
         }
 
-        fun parseIntent(context: Context, subject: Subject, token: AccessToken?): Intent {
+        fun parseIntent(context: Context, subject: Subject, token: AccessToken?, newTask:Boolean = true): Intent {
             val intent = Intent(context, VideoActivity::class.java)
-            intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_MULTIPLE_TASK
+            if(newTask) intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_MULTIPLE_TASK
             intent.putExtra(EXTRA_SUBJECT, JsonUtil.toJson(subject))
             intent.putExtra(EXTRA_TOKEN, JsonUtil.toJson(token?: AccessToken()))
             return intent

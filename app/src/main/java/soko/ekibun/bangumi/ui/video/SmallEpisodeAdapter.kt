@@ -10,6 +10,7 @@ import soko.ekibun.bangumi.api.bangumi.bean.Subject
 import soko.ekibun.bangumi.util.JsonUtil
 import soko.ekibun.bangumi.util.ResourceUtil
 import soko.ekibun.bangumi.App
+import soko.ekibun.bangumi.api.bangumi.bean.SubjectProgress
 import soko.ekibun.bangumiplayer.R
 import soko.ekibun.bangumi.model.VideoCacheModel
 
@@ -23,14 +24,19 @@ class SmallEpisodeAdapter(private val context: VideoActivity, data: MutableList<
         helper.setText(R.id.item_desc, if(item.name_cn.isNullOrEmpty()) item.name else item.name_cn)
         val color = ResourceUtil.resolveColorAttr(helper.itemView.context,
                 when {
-                    item.progress != null -> R.attr.colorPrimary
+                    item.progress?.status?.url_name?:"" == SubjectProgress.EpisodeProgress.EpisodeStatus.WATCH -> R.attr.colorPrimary
                     else -> android.R.attr.textColorSecondary
                 })
-        val alpha = if((item.status?:"") in listOf("Air"))1f else 0.6f
         helper.itemView.item_title.setTextColor(color)
         helper.itemView.item_desc.setTextColor(color)
+        helper.itemView.item_badge.visibility = if(item.progress != null) View.VISIBLE else View.INVISIBLE
+        helper.itemView.item_badge.backgroundTintList = ColorStateList.valueOf(ResourceUtil.resolveColorAttr(helper.itemView.context,
+                when {
+                    item.progress?.status?.url_name?:"" in listOf(SubjectProgress.EpisodeProgress.EpisodeStatus.WATCH, SubjectProgress.EpisodeProgress.EpisodeStatus.QUEUE) -> R.attr.colorPrimary
+                    else -> android.R.attr.textColorSecondary
+                }))
+        helper.itemView.item_badge.text = item.progress?.status?.cn_name?:""
         helper.itemView.item_container.backgroundTintList = ColorStateList.valueOf(color)
-        helper.itemView.item_layout.alpha = alpha
         helper.addOnClickListener(R.id.item_container)
         helper.addOnLongClickListener(R.id.item_container)
         val downloader = App.getVideoCacheModel(helper.itemView.context).getDownloader(item, subject)

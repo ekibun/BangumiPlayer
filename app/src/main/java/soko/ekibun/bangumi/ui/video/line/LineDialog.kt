@@ -18,7 +18,7 @@ import soko.ekibun.bangumi.ui.video.VideoActivity
 
 object LineDialog{
 
-    fun showDialog(context: VideoActivity, viewGroup: ViewGroup, subject: Subject, info: ProviderInfo? = null, callback: (ProviderInfo?)-> Unit){
+    fun showDialog(context: VideoActivity, viewGroup: ViewGroup, subject: Subject, info: ProviderInfo? = null, callback: (ProviderInfo?, Boolean)-> Unit){
         val view =context.layoutInflater.inflate(R.layout.dialog_add_line, viewGroup, false)
         val dialog = AlertDialog.Builder(context)
                 .setView(view).create()
@@ -26,7 +26,7 @@ object LineDialog{
         view.item_delete.visibility = if(info == null) View.GONE else View.VISIBLE
         view.item_delete.setOnClickListener {
             AlertDialog.Builder(context).setMessage("删除这个线路？").setPositiveButton("确定"){ _: DialogInterface, _: Int ->
-                callback(null)
+                callback(null, false)
                 dialog.dismiss()
             }.show()
         }
@@ -55,8 +55,9 @@ object LineDialog{
         if(info != null)
             updateInfo(view, info)
         view.item_search.setOnClickListener {
-            SearchDialog.showDialog(context, viewGroup, subject) {
-                updateInfo(view, it)
+            SearchDialog.showDialog(context, viewGroup, subject) {info, longClick ->
+                if(longClick)updateInfo(view, info)
+                else callback(info, true)
             }
         }
 
@@ -72,7 +73,8 @@ object LineDialog{
             val parser = view.item_video_api.tag as? ParserInfo
             callback(ProviderInfo(provider.siteId, view.item_video_id.text.toString(),
                     view.item_video_offset.text.toString().toFloatOrNull() ?: 0f,
-                    view.item_video_title.text.toString(), provider.hasDanmaku && view.item_load_danmaku.isChecked, parser))
+                    view.item_video_title.text.toString(), provider.hasDanmaku && view.item_load_danmaku.isChecked, parser),
+                    false)
             dialog.dismiss()
         }
         dialog.show()

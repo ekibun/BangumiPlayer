@@ -14,7 +14,7 @@ import soko.ekibun.bangumi.model.ProviderModel
 import soko.ekibun.bangumi.provider.ProviderInfo
 
 object SearchDialog {
-    fun showDialog(context: Activity, viewGroup: ViewGroup, subject: Subject, callback:(ProviderInfo)->Unit){
+    fun showDialog(context: Activity, viewGroup: ViewGroup, subject: Subject, callback:(ProviderInfo, Boolean)->Unit){
         val view =context.layoutInflater.inflate(R.layout.dialog_search_line, viewGroup, false)
         val dialog = AlertDialog.Builder(context)
                 .setView(view).create()
@@ -29,8 +29,12 @@ object SearchDialog {
         view.list_search.layoutManager = LinearLayoutManager(context)
         val adapter = SearchLineAdapter()
         adapter.setOnItemClickListener { _, _, position ->
-            callback(adapter.data[position])
+            callback(adapter.data[position], false)
+        }
+        adapter.setOnItemLongClickListener { _, _, position ->
+            callback(adapter.data[position], true)
             dialog.dismiss()
+            true
         }
         view.list_search.adapter = adapter
         var searchCall: Call<List<ProviderInfo>>? = null

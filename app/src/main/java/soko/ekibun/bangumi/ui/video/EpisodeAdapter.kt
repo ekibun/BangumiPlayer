@@ -24,8 +24,6 @@ import soko.ekibun.bangumi.service.DownloadService
 class EpisodeAdapter(val context: VideoActivity, data: MutableList<SectionEntity<Episode>>? = null) :
         BaseSectionQuickAdapter<SectionEntity<Episode>, BaseViewHolder>
         (R.layout.item_episode, R.layout.header_episode, data) {
-    val subject by lazy{ JsonUtil.toEntity(context.intent.getStringExtra(VideoActivity.EXTRA_SUBJECT), Subject::class.java)!! }
-    val token by lazy{ JsonUtil.toEntity(context.intent.getStringExtra(VideoActivity.EXTRA_TOKEN), AccessToken::class.java)!! }
 
     override fun convertHead(helper: BaseViewHolder, item: SectionEntity<Episode>) {
         helper.getView<TextView>(R.id.item_header).visibility = if(data.indexOf(item) == 0) View.GONE else View.VISIBLE
@@ -50,29 +48,29 @@ class EpisodeAdapter(val context: VideoActivity, data: MutableList<SectionEntity
             getViewByPosition(context.episode_detail_list, index, R.id.item_layout)?.let{
                 it.item_download_info.text = "获取视频信息"
             }
-            context.videoPresenter.videoModel.getVideo(item.t, subject, BackgroundWebView(helper.itemView.context), {loaded->
+            context.videoPresenter.videoModel.getVideo(item.t, context.subjectPresenter.subject, BackgroundWebView(helper.itemView.context), {loaded->
                 getViewByPosition(context.episode_detail_list, index, R.id.item_layout)?.let{
                     it.item_download_info.text = if(loaded  == true)"解析视频地址" else ""
                 }
             }){request, _ ->
                 helper.itemView.post {
                     getViewByPosition(context.episode_detail_list, index, R.id.item_layout)?.let{
-                        val downloader = App.getVideoCacheModel(helper.itemView.context).getDownloader(item.t, subject)
-                        updateDownload(helper.itemView, downloader?.downloadPercentage?: Float.NaN, downloader?.downloadedBytes?:0L, downloader != null)
+                        val downloader = App.getVideoCacheModel(helper.itemView.context).getDownloader(data.getOrNull(index)?.t?:return@let, context.subjectPresenter.subject)
+                        updateDownload(it, downloader?.downloadPercentage?: Float.NaN, downloader?.downloadedBytes?:0L, downloader != null)
                     }
                 }
                 if(request == null || request.first.startsWith("/")) return@getVideo
-                DownloadService.download(helper.itemView.context, item.t, subject, token, request.first, request.second)
+                DownloadService.download(helper.itemView.context, item.t, context.subjectPresenter.subject, context.subjectPresenter.token, request.first, request.second)
             }
         }
         helper.itemView.item_download.setOnLongClickListener {
-            val cache = App.getVideoCacheModel(helper.itemView.context).getCache(item.t, subject)
+            val cache = App.getVideoCacheModel(helper.itemView.context).getCache(item.t, context.subjectPresenter.subject)
             if(cache != null)
-                DownloadService.remove(helper.itemView.context, item.t, subject)
+                DownloadService.remove(helper.itemView.context, item.t, context.subjectPresenter.subject)
             true
         }
 
-        val downloader = App.getVideoCacheModel(helper.itemView.context).getDownloader(item.t, subject)
+        val downloader = App.getVideoCacheModel(helper.itemView.context).getDownloader(item.t, context.subjectPresenter.subject)
         updateDownload(helper.itemView, downloader?.downloadPercentage?: Float.NaN, downloader?.downloadedBytes?:0L, downloader != null)
     }
 

@@ -1,8 +1,10 @@
 package soko.ekibun.bangumi.ui.video
 
 import android.annotation.SuppressLint
+import android.content.Intent
 import android.content.pm.ActivityInfo
 import android.graphics.Color
+import android.net.Uri
 import android.support.constraint.ConstraintLayout
 import android.support.design.widget.AppBarLayout
 import android.support.design.widget.Snackbar
@@ -212,7 +214,11 @@ class VideoPresenter(private val context: VideoActivity){
         //context.nested_scroll.tag = true
         danmakuPresenter.view.pause()
         //videoCall?.cancel()
-        videoModel.getVideo(episode, subject, BackgroundWebView(context), {
+        val webView = BackgroundWebView(context)
+        context.item_logcat.setOnClickListener {
+            context.startActivity(Intent.createChooser(Intent(Intent.ACTION_VIEW, Uri.parse(webView.url)), webView.url))
+        }
+        videoModel.getVideo(episode, subject, webView, {
             loadVideoInfo = it
             if(loadVideoInfo == true)
             context.runOnUiThread { danmakuPresenter.loadDanmaku(infos.filter { it.loadDanmaku && ProviderModel.getProvider(it.siteId)?.hasDanmaku == true }, episode) }

@@ -50,6 +50,15 @@ interface Bangumi {
                        @Query("access_token") access_token: String
     ): Call<StatusCode>
 
+    @FormUrlEncoded
+    @POST("/ep/{id}/status/{status}")
+    fun updateProgress(@Path("id") id: Int,
+                       @SubjectProgress.EpisodeProgress.EpisodeStatus.Companion.EpStatusType
+                       @Path("status") status: String,
+                       @Query("access_token") access_token: String,
+                       @Field("ep_id") epIds: String
+    ): Call<StatusCode>
+
     @GET("/user/{username}/progress")
     fun progress(@Path("username") username: String,
                  @Query("subject_id") subject_id: Int,
@@ -61,6 +70,7 @@ interface Bangumi {
     fun updateCollectionStatus(@Path("subject_id") subject_id: Int,
                                @Field("access_token") access_token: String,
                                @Field("status") status: String,
+                               @Field("tags") tags: String,
                                @Field("comment") comment: String?,
                                @Field("rating") rating: Int,
                                @Field("privacy") privacy: Int = 0
