@@ -9,7 +9,7 @@ import soko.ekibun.bangumi.provider.ProviderInfoList
 
 class ProviderInfoModel(context: Context){
     val sp: SharedPreferences by lazy{ PreferenceManager.getDefaultSharedPreferences(context) }
-    fun prefKey(subject: Subject): String{
+    private fun prefKey(subject: Subject): String{
         return PREF_PROVIDER_INFO + subject.id
     }
 

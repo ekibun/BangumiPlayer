@@ -17,6 +17,7 @@ import kotlinx.android.synthetic.main.danmaku_setting.*
 import kotlinx.android.synthetic.main.video_player.*
 import soko.ekibun.bangumi.api.bangumi.bean.Episode
 import soko.ekibun.bangumi.api.bangumi.bean.Subject
+import soko.ekibun.bangumi.model.ProgressModel
 import soko.ekibun.bangumi.model.VideoModel
 import soko.ekibun.bangumi.ui.view.BackgroundWebView
 import soko.ekibun.bangumi.ui.view.VideoController
@@ -43,8 +44,7 @@ class VideoPresenter(private val context: VideoActivity){
                     context.requestedOrientation = if(context.systemUIPresenter.isLandscape) ActivityInfo.SCREEN_ORIENTATION_PORTRAIT else ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE
                 }
                 Controller.Action.NEXT -> {
-                    next?.let{doPlay(it)}
-                    //context.viewpager.loadAv(nextAv)
+                    nextEpisode()?.let{playEpisode(it)}
                 }
                 Controller.Action.DANMAKU -> {
                     if(danmakuPresenter.view.isShown)
@@ -63,6 +63,7 @@ class VideoPresenter(private val context: VideoActivity){
                     context.runOnUiThread{
                         updatePauseResume()
                         updateProgress()
+                        controller.updateNext(nextEpisode() != null)
                         context.item_mask.visibility = View.VISIBLE
                         context.toolbar.visibility = View.VISIBLE
                         if(context.systemUIPresenter.isLandscape)
@@ -95,8 +96,13 @@ class VideoPresenter(private val context: VideoActivity){
                     context.item_logcat.visibility = View.INVISIBLE
                     controller.doShowHide(false)
                 }
-                if (playWhenReady)
+                if (playWhenReady) {
                     doPlayPause(true)
+                    startAt?.let{
+                        videoModel.player.seekTo(it)
+                        startAt = null
+                    }
+                }
                 if (!controller.isShow) {
                     context.item_mask.visibility = View.INVISIBLE
                     context.toolbar.visibility = View.INVISIBLE
@@ -111,6 +117,7 @@ class VideoPresenter(private val context: VideoActivity){
 
             override fun onEnded() {
                 doPlayPause(false)
+                nextEpisode()?.let{playEpisode(it)}
             }
 
             override fun onVideoSizeChange(width: Int, height: Int, unappliedRotationDegrees: Int, pixelWidthHeightRatio: Float) {
@@ -188,18 +195,28 @@ class VideoPresenter(private val context: VideoActivity){
         }
     }
 
-    var doPlay: (Int)->Unit = {}
-    var next: Int? = null
-    var prev: Int? = null
+    var playEpisode: (Episode)->Unit = {}
+    var nextEpisode: ()->Episode? = { null }
+    var prevEpisode: ()->Episode? = { null }
+    //var doPlay: (Int)->Unit = {}
+    //var next: Int? = null
+    //var prev: Int? = null
     //var videoCall: Call<BaseProvider.VideoInfo>? = null
-    fun play(episode: Episode, subject: Subject, info: ProviderInfo, infos: List<ProviderInfo>){
+    var updatePlayProgress: (Int)->Unit = {}
+    val processModel by lazy { ProgressModel(context) }
+    var startAt: Long? = null
+    fun play(episode: Episode, subject: Subject, infos: List<ProviderInfo>){
+        updatePlayProgress = {
+            processModel.saveProgress(subject, ProgressModel.Info(episode, it))
+        }
+
         context.toolbar_layout.isTitleEnabled = false
         context.systemUIPresenter.appbarCollapsible(false)
         loadVideoInfo = null
         loadVideo = null
         loadDanmaku = null
         exception = null
-        controller.updateNext(next != null)
+        controller.updateNext(nextEpisode() != null)
         videoModel.player.playWhenReady = false
         controller.updateLoading(true)
         context.video_surface_container.visibility = View.VISIBLE
@@ -236,6 +253,7 @@ class VideoPresenter(private val context: VideoActivity){
         if(play){
             playLoopTask = object: TimerTask(){ override fun run() {
                 updateProgress()
+                updatePlayProgress((videoModel.player.currentPosition/ 10).toInt())
                 danmakuPresenter.add(videoModel.player.currentPosition)
                 if(danmakuPresenter.view.isShown && !danmakuPresenter.view.isPaused){
                     danmakuPresenter.view.start(videoModel.player.currentPosition)

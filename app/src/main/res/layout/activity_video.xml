@@ -121,6 +121,31 @@
                          android:paddingBottom="8dp">
                 <include layout="@layout/subject_detail"/>
             </FrameLayout>
+            <LinearLayout
+                    android:id="@+id/item_progress"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:clickable="true"
+                    android:foreground="?android:attr/selectableItemBackground"
+                    android:focusable="true"
+                    android:padding="12dp">
+                <TextView
+                        android:id="@+id/item_progress_info"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:maxLines="1"
+                        android:layout_gravity="center_vertical"
+                        android:textColor="?android:textColorPrimary"
+                        android:ellipsize="end"/>
+                <TextView
+                        android:id="@+id/item_progress_play"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:drawableStart="@drawable/ic_play"
+                        android:gravity="center_vertical"
+                        android:textColor="?colorAccent"/>
+            </LinearLayout>
             <include android:id="@+id/item_episodes"
                      layout="@layout/subject_episode"/>
             <LinearLayout

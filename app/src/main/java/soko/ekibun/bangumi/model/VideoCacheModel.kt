@@ -17,77 +17,23 @@ import soko.ekibun.bangumi.api.bangumi.bean.Episode
 import soko.ekibun.bangumi.api.bangumi.bean.Subject
 import soko.ekibun.bangumi.util.JsonUtil
 import java.io.File
-import android.content.ContentValues
+import android.preference.PreferenceManager
+import com.google.gson.reflect.TypeToken
 
 class VideoCacheModel(context: Context){
-
-    //val sp: SharedPreferences by lazy{ PreferenceManager.getDefaultSharedPreferences(context) }
-    val resolver by lazy { context.contentResolver }
-    val uri = Uri.parse("content://${ContentProviderModel.AUTOHORITY}/${ContentProviderModel.VIDEO_CACHE}")
-
-    fun getVideoCacheList(): Map<Int, VideoCache>{
-        val cursor = resolver.query(uri,
-                arrayOf("_id", "data"), null, null, null)
-        val ret = HashMap<Int, VideoCache>()
-        while(cursor?.moveToNext() == true){
-            ret[cursor.getInt(0)] = JsonUtil.toEntity(cursor.getString(1), VideoCache::class.java)?:continue
-        }
-        cursor?.close()
-        return  ret
-    }
-
-    fun getBangumiVideoCacheList(bangumi: Subject): VideoCache?{
-        val cursor = resolver.query(uri,
-                arrayOf("data"), "_id=?", arrayOf(bangumi.id.toString()), null)
-        if(cursor?.moveToFirst() !=  true) return null
-        val infoString = cursor.getString(0)
-        cursor.close()
-        return  JsonUtil.toEntity(infoString, VideoCache::class.java)
-    }
-
-    fun getCache(video: Episode, bangumi: Subject): VideoCache.VideoCacheBean? {
-        return getBangumiVideoCacheList(bangumi)?.videoList?.get(video.id)
-    }
-
-    fun addVideoCache(video: Episode, bangumi: Subject, url: String, header: Map<String, String>){
-        val cacheList = getBangumiVideoCacheList(bangumi)
-        val newData = VideoCache(bangumi, (cacheList?.videoList
-                ?: HashMap()).plus(
-                Pair(video.id, VideoCache.VideoCacheBean(video, url, header))))
-        val values = ContentValues()
-        values.put("_id", bangumi.id)
-        values.put("data", JsonUtil.toJson(newData))
-        if(cacheList == null)
-            resolver.insert(uri, values)
-        else
-            resolver.update(uri, values, "_id=?", arrayOf(bangumi.id.toString()))
-    }
-
-    fun removeVideoCache(video: Episode, bangumi: Subject){
-        val cacheList = getBangumiVideoCacheList(bangumi)?: return
-        val newData = VideoCache(bangumi, cacheList.videoList.minus(video.id))
-        val values = ContentValues()
-        values.put("_id", bangumi.id)
-        values.put("data", JsonUtil.toJson(newData))
-        if(newData.videoList.isEmpty())
-            resolver.delete(uri, "_id=?", arrayOf(bangumi.id.toString()))
-        else
-            resolver.update(uri, values, "_id=?", arrayOf(bangumi.id.toString()))
-    }
-
-    /*
+    val sp by lazy{ PreferenceManager.getDefaultSharedPreferences(context) }
     private val videoCache = "videoCache"
-    fun getVideoCacheList(): Map<Int, VideoCache>{
+    private fun getVideoCacheList(): Map<Int, VideoCache>{
         return JsonUtil.toEntity(sp.getString(videoCache, JsonUtil.toJson(HashMap<Int, VideoCache>()))!!,
                 object : TypeToken<Map<Int, VideoCache>>() {}.type)?: HashMap()
     }
 
-    fun getBangumiVideoCacheList(bangumi: Subject): VideoCache?{
-        return  getVideoCacheList()[bangumi.id]
+    fun getBangumiVideoCacheList(bangumi: Int): VideoCache?{
+        return  getVideoCacheList()[bangumi]
     }
 
     fun getCache(video: Episode, bangumi: Subject): VideoCache.VideoCacheBean? {
-        return getBangumiVideoCacheList(bangumi)?.videoList?.get(video.id)
+        return getBangumiVideoCacheList(bangumi.id)?.videoList?.get(video.id)
     }
 
     fun addVideoCache(video: Episode, bangumi: Subject, url: String, header: Map<String, String>){
@@ -112,7 +58,6 @@ class VideoCacheModel(context: Context){
         editor.putString(videoCache, JsonUtil.toJson(set))
         editor.apply()
     }
-    */
 
     fun getDownloader(episode: Episode, bangumi: Subject): Downloader?{
         getCache(episode, bangumi)?.let{ return getDownloader(it.url, it.header) }

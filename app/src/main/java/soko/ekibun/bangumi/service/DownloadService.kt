@@ -46,7 +46,7 @@ class DownloadService : Service() {
                 .setSmallIcon(when(status) {
                     0 -> R.drawable.offline_pin
                     -1 -> R.drawable.ic_pause
-                    else -> R.drawable.stat_sys_download
+                    else -> android.R.drawable.stat_sys_download
                 })
                 .setContentTitle("")
                 .setAutoCancel(true)
@@ -66,7 +66,6 @@ class DownloadService : Service() {
                     taskCollection.forEach {
                         val video = it.value.video
                         val bangumi = it.value.bangumi
-                        val token = it.value.token
                         val downloader = it.value.downloader
                         val percent = downloader.downloadPercentage
                         val bytes = downloader.downloadedBytes
@@ -76,9 +75,9 @@ class DownloadService : Service() {
 
                         sendBroadcast(video, bangumi, percent, bytes)
                         val intent = PendingIntent.getActivity(this@DownloadService, video.id.hashCode(),
-                                VideoActivity.parseIntent(this@DownloadService, bangumi, token), PendingIntent.FLAG_UPDATE_CURRENT)
+                                VideoActivity.parseIntent(this@DownloadService, bangumi), PendingIntent.FLAG_UPDATE_CURRENT)
                         manager.notify(video.id.toString(), 0, NotificationUtil.builder(this@DownloadService, downloadChannelId, "下载")
-                                .setSmallIcon(if(isFinished) R.drawable.offline_pin else R.drawable.stat_sys_download)
+                                .setSmallIcon(if(isFinished) R.drawable.offline_pin else android.R.drawable.stat_sys_download)
                                 .setOngoing(!isFinished)
                                 .setAutoCancel(true)
                                 .setGroup(this@DownloadService.getGroupSummary(status, intent))
@@ -101,7 +100,7 @@ class DownloadService : Service() {
         super.onDestroy()
     }
 
-    class DownloadTask(val video: Episode, val bangumi: Subject, val token: AccessToken, val downloader: Downloader): AsyncTask<Unit, Unit, Unit>(){
+    class DownloadTask(val video: Episode, val bangumi: Subject, val downloader: Downloader): AsyncTask<Unit, Unit, Unit>(){
         override fun doInBackground(vararg params: Unit?) {
             while(!Thread.currentThread().isInterrupted && ! VideoCacheModel.isFinished(downloader.downloadPercentage)){
                 try {
@@ -123,14 +122,13 @@ class DownloadService : Service() {
 
             when(intent.action){
                 ACTION_DOWNLOAD -> {
-                    val token = JsonUtil.toEntity(intent.getStringExtra(EXTRA_TOKEN), AccessToken::class.java)!!
                     val task = taskCollection[video.id]
                     if(task!= null){
                         taskCollection.remove(video.id)
                         task.cancel(true)
                         sendBroadcast(video, bangumi, task.downloader.downloadPercentage, task.downloader.downloadedBytes, true)
                         val pIntent = PendingIntent.getActivity(this@DownloadService, video.id.hashCode(),
-                                VideoActivity.parseIntent(this@DownloadService, bangumi, token), PendingIntent.FLAG_UPDATE_CURRENT)
+                                VideoActivity.parseIntent(this@DownloadService, bangumi), PendingIntent.FLAG_UPDATE_CURRENT)
                         manager.notify(video.id.toString(), 0, NotificationUtil.builder(this@DownloadService, downloadChannelId, "下载")
                                 .setSmallIcon(R.drawable.ic_pause)
                                 .setOngoing(false)
@@ -144,7 +142,7 @@ class DownloadService : Service() {
                         val url = intent.getStringExtra(EXTRA_URL)
                         val map = JsonUtil.toEntity<Map<String, String>>(intent.getStringExtra(EXTRA_HEADER), object : TypeToken<Map<String, String>>() {}.type)?:return super.onStartCommand(intent, flags, startId)
                         val downloader = App.getVideoCacheModel(this).getDownloader(url, map)
-                        val newTask = DownloadTask(video, bangumi, token, downloader)
+                        val newTask = DownloadTask(video, bangumi, downloader)
                         taskCollection[video.id] = newTask
                         newTask.executeOnExecutor(cachedThreadPool)
                     }
@@ -186,7 +184,6 @@ class DownloadService : Service() {
         const val EXTRA_BYTES = "extraBytes"
         const val EXTRA_EPISODE = "extraEpisode"
         const val EXTRA_SUBJECT = "extraSubject"
-        const val EXTRA_TOKEN = "extraToken"
         const val EXTRA_URL = "extraUrl"
         const val EXTRA_HEADER = "extraHeader"
         const val ACTION_DOWNLOAD = "actionDownload"
@@ -200,13 +197,12 @@ class DownloadService : Service() {
             return "${Formatter.formatFileSize(context, bytes)}/${Formatter.formatFileSize(context, (bytes * 100 / percent).toLong())}"
         }
 
-        fun download(context: Context, video: Episode, subject: Subject, token: AccessToken, url: String, header: Map<String, String>){
+        fun download(context: Context, video: Episode, subject: Subject, url: String, header: Map<String, String>){
             App.getVideoCacheModel(context).addVideoCache(video, subject, url, header)
             val intent = Intent(context, DownloadService::class.java)
             intent.action = ACTION_DOWNLOAD
             intent.putExtra(EXTRA_SUBJECT, JsonUtil.toJson(subject))
             intent.putExtra(EXTRA_EPISODE, JsonUtil.toJson(video))
-            intent.putExtra(EXTRA_TOKEN, JsonUtil.toJson(token))
             intent.putExtra(EXTRA_URL, url)
             intent.putExtra(EXTRA_HEADER, JsonUtil.toJson(header))
             context.startService(intent)

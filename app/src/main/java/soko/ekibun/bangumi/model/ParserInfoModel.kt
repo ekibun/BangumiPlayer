@@ -10,7 +10,7 @@ class ParserInfoModel(context: Context){
     val sp: SharedPreferences by lazy{ PreferenceManager.getDefaultSharedPreferences(context) }
     fun removeInfo(info: ParserInfo){
         val editor = sp.edit()
-        val set = HashSet((sp.getStringSet("parserInfo", null)?: HashSet()))
+        val set = HashSet((sp.getStringSet(PREF_PARSER_INFO, null)?: HashSet()))
         val infoString = JsonUtil.toJson(info)
         set.removeAll { it == infoString }
         editor.putStringSet(PREF_PARSER_INFO, set)
@@ -19,14 +19,14 @@ class ParserInfoModel(context: Context){
 
     fun saveInfo(info: ParserInfo) {
         val editor = sp.edit()
-        val set = HashSet((sp.getStringSet("parserInfo", null)?: HashSet()))
+        val set = HashSet((sp.getStringSet(PREF_PARSER_INFO, null)?: HashSet()))
         set.add(JsonUtil.toJson(info))
         editor.putStringSet(PREF_PARSER_INFO, set)
         editor.apply()
     }
 
     fun getInfos(): Set<ParserInfo> {
-        return (sp.getStringSet("parserInfo", null)?: HashSet()).map { JsonUtil.toEntity(it, ParserInfo::class.java) }.filterNotNull().toSet()
+        return (sp.getStringSet(PREF_PARSER_INFO, null)?: HashSet()).mapNotNull { JsonUtil.toEntity(it, ParserInfo::class.java) }.toSet()
     }
 
     companion object {

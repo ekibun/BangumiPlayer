@@ -10,11 +10,8 @@ import com.chad.library.adapter.base.entity.SectionEntity
 import com.oushangfeng.pinnedsectionitemdecoration.utils.FullSpanUtil
 import kotlinx.android.synthetic.main.activity_video.*
 import kotlinx.android.synthetic.main.item_episode.view.*
-import soko.ekibun.bangumi.api.bangumi.bean.AccessToken
 import soko.ekibun.bangumi.api.bangumi.bean.Episode
-import soko.ekibun.bangumi.api.bangumi.bean.Subject
 import soko.ekibun.bangumi.ui.view.BackgroundWebView
-import soko.ekibun.bangumi.util.JsonUtil
 import soko.ekibun.bangumi.util.ResourceUtil
 import soko.ekibun.bangumi.App
 import soko.ekibun.bangumiplayer.R
@@ -60,7 +57,7 @@ class EpisodeAdapter(val context: VideoActivity, data: MutableList<SectionEntity
                     }
                 }
                 if(request == null || request.first.startsWith("/")) return@getVideo
-                DownloadService.download(helper.itemView.context, item.t, context.subjectPresenter.subject, context.subjectPresenter.token, request.first, request.second)
+                DownloadService.download(helper.itemView.context, item.t, context.subjectPresenter.subject, request.first, request.second)
             }
         }
         helper.itemView.item_download.setOnLongClickListener {

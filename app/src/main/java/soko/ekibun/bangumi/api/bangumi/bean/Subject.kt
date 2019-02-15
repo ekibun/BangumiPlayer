@@ -21,7 +21,16 @@ data class Subject(
         var crt: List<Character>? = null,
         var staff: List<Person>? = null,
         var topic: List<TopicBean>? = null,
-        var blog: List<BlogBean>? = null
+        var blog: List<BlogBean>? = null,
+        var collect: Boolean = false,
+        //web
+        var infobox: List<Pair<String, String>>? = null,
+        var linked: List<Subject>? = null,
+        var commend: List<Subject>? = null,
+        var tags: List<Pair<String, Int>>? = null,
+        var typeString: String? = null,
+        var formhash: String? = null,
+        var interest: Collection? = null
 ){
     val title get() = if(name_cn.isNullOrEmpty()) name else name_cn
 

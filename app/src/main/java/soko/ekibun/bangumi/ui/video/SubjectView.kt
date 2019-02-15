@@ -5,6 +5,7 @@ import android.content.Intent
 import android.net.Uri
 import android.support.v7.app.AlertDialog
 import android.support.v7.widget.LinearLayoutManager
+import android.util.Log
 import android.view.Gravity
 import android.view.View
 import android.view.ViewGroup
@@ -19,14 +20,12 @@ import kotlinx.android.synthetic.main.subject_detail.*
 import kotlinx.android.synthetic.main.subject_episode.*
 import soko.ekibun.bangumi.api.bangumi.bean.Episode
 import soko.ekibun.bangumi.api.bangumi.bean.Subject
-import soko.ekibun.bangumi.api.bangumi.bean.SubjectProgress
 import soko.ekibun.bangumi.ui.subject.SeasonAdapter
 import soko.ekibun.bangumi.util.JsonUtil
 import soko.ekibun.bangumi.App
 import soko.ekibun.bangumi.ui.view.DragPhotoView
 import soko.ekibun.bangumi.util.AppUtil
 import soko.ekibun.bangumiplayer.R
-
 
 class SubjectView(private val context: VideoActivity){
     val episodeAdapter = SmallEpisodeAdapter(context)
@@ -130,64 +129,49 @@ class SubjectView(private val context: VideoActivity){
                 .apply(RequestOptions.bitmapTransform(BlurTransformation(25, 8)))
                 .into(context.item_cover_blur)
         val eps = ((subject.eps as? List<*>)?.map{ JsonUtil.toEntity(JsonUtil.toJson(it!!), Episode::class.java)!!})
-        val cacheEpisode = App.getVideoCacheModel(context).getBangumiVideoCacheList(subject)?.videoList?.map{it.value.video}?:ArrayList()
-        updateEpisode(eps, cacheEpisode)
+        updateEpisode(eps, subject)
     }
 
     var bangumiEpisode: List<Episode> = ArrayList()
     @SuppressLint("SetTextI18n")
-    fun updateEpisode(episodes: List<Episode>?, cacheEpisode: List<Episode>){
+    fun updateEpisode(episodes: List<Episode>?, subject: Subject){
+        Log.v("eps", episodes.toString())
+        val cacheEpisode = App.getVideoCacheModel(context).getBangumiVideoCacheList(subject.id)?.videoList?.map{it.value.video}?:ArrayList()
         bangumiEpisode = episodes?: bangumiEpisode
         val eps = bangumiEpisode.filter { (it.status?:"") in listOf("Air") }.size
         context.episode_detail.text = (if(!cacheEpisode.isEmpty()) "已缓存 ${cacheEpisode.size} 话" else "") +
                 (if(!cacheEpisode.isEmpty() && !bangumiEpisode.isEmpty()) " / " else "")+
                 (if(!bangumiEpisode.isEmpty()) context.getString(if(eps == bangumiEpisode.size) R.string.phrase_full else R.string.phrase_updating, eps) else "")
-        val maps = HashMap<Int, List<Episode>>()
+        val maps = LinkedHashMap<String, List<Episode>>()
         bangumiEpisode.plus(cacheEpisode).distinctBy { it.id }.forEach {
-            maps[it.type] = (maps[it.type]?:ArrayList()).plus(it)
+            val key = it.cat?:Episode.getTypeName(it.type)
+            maps[key] = (maps[key]?:ArrayList()).plus(it)
         }
         episodeAdapter.setNewData(null)
         episodeDetailAdapter.setNewData(null)
         maps.forEach {
-            episodeDetailAdapter.addData(object: SectionEntity<Episode>(true, Episode.getTypeName(it.key)){})
+            episodeDetailAdapter.addData(object: SectionEntity<Episode>(true, it.key){})
             it.value.forEach {
                 if((it.status?:"") in listOf("Air"))
                     episodeAdapter.addData(it)
                 episodeDetailAdapter.addData(object: SectionEntity<Episode>(it){})
             }
         }
-        progress = progress
+        if(!scrolled && episodeAdapter.data.size>0){
+            scrolled = true
+
+            var lastView = 0
+            episodeAdapter.data.forEachIndexed { index, episode ->
+                if(episode.progress != null)
+                    lastView = index
+            }
+            val layoutManager = (context.episode_list.layoutManager as LinearLayoutManager)
+            layoutManager.scrollToPositionWithOffset(lastView, 0)
+            layoutManager.stackFromEnd = false
+        }
     }
 
     private var scrolled = false
-    var loadedProgress = false
-    var progress: SubjectProgress? = null
-        set(value) {
-            episodeDetailAdapter.data.forEach { ep ->
-                ep.t?.progress = null
-                value?.eps?.forEach {
-                    if (ep.t?.id == it.id) {
-                        ep.t?.progress = it
-                    }
-                }
-            }
-            episodeAdapter.notifyDataSetChanged()
-            episodeDetailAdapter.notifyDataSetChanged()
-            field = value
-
-            if(!scrolled && loadedProgress && episodeAdapter.data.size>0){
-                scrolled = true
-
-                var lastView = 0
-                episodeAdapter.data.forEachIndexed { index, episode ->
-                    if(episode.progress != null)
-                        lastView = index
-                }
-                val layoutManager = (context.episode_list.layoutManager as LinearLayoutManager)
-                layoutManager.scrollToPositionWithOffset(lastView, 0)
-                layoutManager.stackFromEnd = false
-            }
-        }
 
     fun showEpisodeDetail(show: Boolean){
         context.episode_detail_list_header.visibility = if(show) View.VISIBLE else View.INVISIBLE

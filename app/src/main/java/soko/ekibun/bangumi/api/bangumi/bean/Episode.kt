@@ -17,13 +17,14 @@ data class Episode(
         var comment: Int = 0,
         var desc: String? = null,
         var status: String? = null,
-        var progress: SubjectProgress.EpisodeProgress? = null
+        var progress: SubjectProgress.EpisodeProgress? = null,
+        //music
+        var cat: String? = null
 ) {
-    val title get() = if(name_cn.isNullOrEmpty()) name else name_cn
     /**
      * id : 4835
      * url : http://bgm.tv/ep/4835
-     * siteId : 0
+     * type : 0
      * sort : 1
      * name : 廃部！
      * name_cn : 废部！
@@ -51,8 +52,9 @@ data class Episode(
         const val TYPE_PV = 4
         const val TYPE_MAD = 5
         const val TYPE_OTHER = 6
+        const val TYPE_MUSIC = 7
 
-        @IntDef(TYPE_MAIN, TYPE_SP, TYPE_OP, TYPE_ED, TYPE_PV, TYPE_MAD, TYPE_OTHER)
+        @IntDef(TYPE_MAIN, TYPE_SP, TYPE_OP, TYPE_ED, TYPE_PV, TYPE_MAD, TYPE_OTHER, TYPE_MUSIC)
         annotation class EpisodeType
 
         @SuppressLint("SwitchIntDef")
@@ -64,6 +66,7 @@ data class Episode(
                 TYPE_ED -> "ED"
                 TYPE_PV -> "PV"
                 TYPE_MAD -> "MAD"
+                TYPE_MUSIC -> "曲目"
                 else -> "其他"
             }
         }

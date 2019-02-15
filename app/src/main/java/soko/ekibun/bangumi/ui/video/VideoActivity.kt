@@ -22,12 +22,19 @@ import soko.ekibun.bangumi.util.JsonUtil
 import soko.ekibun.bangumiplayer.R
 import android.content.*
 import android.util.Log
+import android.webkit.CookieManager
+import android.webkit.WebView
 import android.widget.Toast
 import kotlinx.android.synthetic.main.subject_episode.*
+import org.jsoup.Jsoup
+import soko.ekibun.bangumi.api.ApiHelper
+import soko.ekibun.bangumi.api.bangumi.Bangumi
 import soko.ekibun.bangumi.api.bangumi.bean.Episode
+import soko.ekibun.bangumi.model.ThemeModel
 import soko.ekibun.bangumi.util.AppUtil
 import soko.ekibun.bangumi.util.StorageUtil
 import soko.ekibun.bangumi.service.DownloadService
+import soko.ekibun.bangumi.util.Bridge
 
 
 class VideoActivity : AppCompatActivity() {
@@ -39,8 +46,27 @@ class VideoActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_video)
 
+        ThemeModel.setTheme(this, ThemeModel(Bridge.getContext(this)).getTheme())
         setSupportActionBar(toolbar)
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
+
+        val cookieManager = CookieManager.getInstance()
+        val cookie  = intent.getStringExtra(VideoActivity.EXTRA_COOKIE)?:""
+        var needReload = false
+        cookie.split("; ").filterNot { it.isEmpty() }.forEach {
+            cookieManager.setCookie(Bangumi.SERVER, it) }
+        ApiHelper.buildHttpCall(Bangumi.SERVER, mapOf("User-Agent" to ua)){
+            val doc = Jsoup.parse(it.body()?.string()?:"")
+            if(doc.selectFirst(".guest") != null) return@buildHttpCall null
+            it.headers("set-cookie").forEach {
+                cookieManager.setCookie(Bangumi.SERVER, it)
+                needReload = true }
+            doc.selectFirst("input[name=formhash]")?.attr("value")
+        }.enqueue(ApiHelper.buildCallback(this, { hash->
+            if(hash.isNullOrEmpty()) return@buildCallback
+            formhash = hash?:formhash
+            if(needReload) subjectPresenter.refreshSubject()
+        }))
 
         systemUIPresenter.init()
 
@@ -97,9 +123,9 @@ class VideoActivity : AppCompatActivity() {
                     videoPresenter.doPlayPause(true)
                 }
                 CONTROL_TYPE_NEXT ->
-                    videoPresenter.next?.let{videoPresenter.doPlay(it)}
+                    videoPresenter.nextEpisode()?.let{videoPresenter.playEpisode(it)}
                 CONTROL_TYPE_PREV ->
-                    videoPresenter.prev?.let{videoPresenter.doPlay(it)}
+                    videoPresenter.prevEpisode()?.let{videoPresenter.playEpisode(it)}
             }
         }
     }
@@ -117,11 +143,11 @@ class VideoActivity : AppCompatActivity() {
             val actionPrev = RemoteAction(Icon.createWithResource(this, R.drawable.ic_prev), getString(R.string.next_video), getString(R.string.next_video),
                     PendingIntent.getBroadcast(this, CONTROL_TYPE_PREV, Intent(ACTION_MEDIA_CONTROL + subjectPresenter.subject.id).putExtra(EXTRA_CONTROL_TYPE,
                             CONTROL_TYPE_PREV), PendingIntent.FLAG_UPDATE_CURRENT))
-            actionPrev.isEnabled = videoPresenter.prev != null
+            actionPrev.isEnabled = videoPresenter.prevEpisode() != null
             val actionNext = RemoteAction(Icon.createWithResource(this, R.drawable.ic_next), getString(R.string.next_video), getString(R.string.next_video),
                     PendingIntent.getBroadcast(this, CONTROL_TYPE_NEXT, Intent(ACTION_MEDIA_CONTROL + subjectPresenter.subject.id).putExtra(EXTRA_CONTROL_TYPE,
                             CONTROL_TYPE_NEXT), PendingIntent.FLAG_UPDATE_CURRENT))
-            actionNext.isEnabled = videoPresenter.next != null
+            actionNext.isEnabled = videoPresenter.nextEpisode() != null
             try{
                 setPictureInPictureParams(PictureInPictureParams.Builder().setActions(listOf(
                         actionPrev,
@@ -134,6 +160,8 @@ class VideoActivity : AppCompatActivity() {
         }
     }
 
+    val ua by lazy { WebView(this).settings.userAgentString }
+    var formhash = ""
     var pauseOnStop = false
     override fun onStart() {
         super.onStart()
@@ -227,7 +255,7 @@ class VideoActivity : AppCompatActivity() {
 
     companion object {
         const val EXTRA_SUBJECT = "extraSubject"
-        const val EXTRA_TOKEN = "extraToken"
+        const val EXTRA_COOKIE = "extraCookie"
         const val ACTION_MEDIA_CONTROL = "bangumiActionMediaControl"
         const val EXTRA_CONTROL_TYPE = "extraControlType"
         const val CONTROL_TYPE_PAUSE = 1
@@ -238,15 +266,14 @@ class VideoActivity : AppCompatActivity() {
         private const val REQUEST_STORAGE_CODE = 1
         private const val REQUEST_FILE_CODE = 2
 
-        fun startActivity(context: Context, subject: Subject, token: AccessToken?, newTask:Boolean = false) {
-            context.startActivity(parseIntent(context, subject, token, newTask))
+        fun startActivity(context: Context, subject: Subject, newTask:Boolean = false) {
+            context.startActivity(parseIntent(context, subject, newTask))
         }
 
-        fun parseIntent(context: Context, subject: Subject, token: AccessToken?, newTask:Boolean = true): Intent {
+        fun parseIntent(context: Context, subject: Subject, newTask:Boolean = true): Intent {
             val intent = Intent(context, VideoActivity::class.java)
             if(newTask) intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_MULTIPLE_TASK
             intent.putExtra(EXTRA_SUBJECT, JsonUtil.toJson(subject))
-            intent.putExtra(EXTRA_TOKEN, JsonUtil.toJson(token?: AccessToken()))
             return intent
         }
     }
