@@ -16,4 +16,22 @@ object Bridge {
         val instance = classWebActivity.getDeclaredField("Companion").get(null)
         classWebActivityCompanion.getDeclaredMethod("launchUrl", Context::class.java, String::class.java, String::class.java).invoke(instance, bridgeContext, url, openUrl)
     }
+
+    fun getUserAgent(context: Context): String {
+        val bridgeContext = getContext(context)
+        val classWebViewCookieHandler = bridgeContext.classLoader.loadClass("$PACKAGE_NAME.util.WebViewCookieHandler")
+        return classWebViewCookieHandler.getDeclaredMethod("getUserAgent", Context::class.java).invoke(null, bridgeContext) as String
+    }
+
+    fun getCookie(context: Context, url: String): String {
+        val bridgeContext = getContext(context)
+        val classWebViewCookieHandler = bridgeContext.classLoader.loadClass("$PACKAGE_NAME.util.WebViewCookieHandler")
+        return classWebViewCookieHandler.getDeclaredMethod("getCookie", String::class.java).invoke(null, url) as String
+    }
+
+    fun setCookie(context: Context, url: String, cookie: String) {
+        val bridgeContext = getContext(context)
+        val classWebViewCookieHandler = bridgeContext.classLoader.loadClass("$PACKAGE_NAME.util.WebViewCookieHandler")
+        classWebViewCookieHandler.getDeclaredMethod("setCookie", String::class.java, String::class.java).invoke(null, url, cookie)
+    }
 }

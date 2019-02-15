@@ -116,7 +116,7 @@ class VideoController(view: ViewGroup,
         }
 
     //timer
-    var timer = Timer()
+    val timer = Timer()
     private var timeoutTask: TimerTask? = null
     private fun resetTimeout(timeout: Boolean = true){
         //remove timeout task

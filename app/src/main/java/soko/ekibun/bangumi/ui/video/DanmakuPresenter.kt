@@ -3,6 +3,7 @@ package soko.ekibun.bangumi.ui.video
 import android.annotation.SuppressLint
 import android.graphics.Color
 import android.preference.PreferenceManager
+import android.support.v7.widget.LinearLayoutManager
 import android.view.View
 import android.widget.SeekBar
 import master.flame.danmaku.danmaku.model.BaseDanmaku
@@ -24,7 +25,6 @@ import soko.ekibun.bangumiplayer.R
 class DanmakuPresenter(val view: DanmakuView, val context: VideoActivity,
                        private val onFinish:(Throwable?)->Unit){
     private val sp by lazy { PreferenceManager.getDefaultSharedPreferences(context) }
-    private val danmakus = HashMap<BaseProvider.VideoInfo, HashSet<BaseProvider.DanmakuInfo>>()
     private val danmakuContext by lazy { DanmakuContext.create() }
     private val parser by lazy { object : BaseDanmakuParser() {
         override fun parse(): Danmakus {
@@ -35,6 +35,7 @@ class DanmakuPresenter(val view: DanmakuView, val context: VideoActivity,
             field = value
             updateValue()
         }
+    private val adapter =  DanmakuListAdapter()
 
     init{
         val overlappingEnablePair = HashMap<Int, Boolean>()
@@ -82,6 +83,10 @@ class DanmakuPresenter(val view: DanmakuView, val context: VideoActivity,
         context.danmaku_scroll.setOnClickListener(onClick)
         context.danmaku_bottom.setOnClickListener(onClick)
         context.danmaku_special.setOnClickListener(onClick)
+
+        context.item_danmaku_list.isNestedScrollingEnabled = false
+        context.item_danmaku_list.layoutManager = LinearLayoutManager(context)
+        context.item_danmaku_list.adapter = adapter
     }
 
     @SuppressLint("SetTextI18n")
@@ -152,33 +157,67 @@ class DanmakuPresenter(val view: DanmakuView, val context: VideoActivity,
         const val DANMAKU_ENABLE_SPECIAL = "danmakuEnableSpecial"
     }
 
-    private var videoInfoCall: Call<BaseProvider.VideoInfo>? = null
+    private val videoInfoCalls = ArrayList<Call<BaseProvider.VideoInfo>>()
     private val danmakuCalls: ArrayList<Call<String>> = ArrayList()
-    private val danmakuKeys: HashMap<BaseProvider.VideoInfo, String> = HashMap()
+    private val danmakuKeys: HashMap<DanmakuListAdapter.DanmakuInfo, String> = HashMap()
     fun loadDanmaku(infos: List<ProviderInfo>, video: Episode){
-        danmakus.clear()
         view.removeAllDanmakus(true)
         danmakuCalls.forEach { it.cancel() }
         danmakuCalls.clear()
         danmakuKeys.clear()
-        videoInfoCall?.cancel()
-        videoInfoCall = ApiHelper.buildGroupCall(infos.map{ ProviderModel.getVideoInfo(it, video)}.toTypedArray())
-        videoInfoCall?.enqueue(ApiHelper.buildCallback(view.context, {videoInfo->
-            val call = ProviderModel.getDanmakuKey(videoInfo)
-            call.enqueue(ApiHelper.buildCallback(view.context, {
-                danmakuKeys[videoInfo] = it
-                doAdd(Math.max(lastPos, 0) * 1000L * 300L, videoInfo, it)
-            }, {}))
-            danmakuCalls.add(call)
-        }, {}))
+
+        videoInfoCalls.forEach { it.cancel() }
+        videoInfoCalls.clear()
+
+        adapter.setNewData(infos.map{ DanmakuListAdapter.DanmakuInfo(it) })
+        adapter.data.forEach {
+            loadDanmaku(it, video)
+        }
+        adapter.setOnItemClickListener { _, _, position ->
+            loadDanmaku(adapter.data[position], video)
+        }
     }
 
-    fun doAdd(pos: Long, videoInfo: BaseProvider.VideoInfo, key: String){
-        ProviderModel.getDanmaku(videoInfo, key, (pos / 1000).toInt()).enqueue(ApiHelper.buildCallback(view.context, {
-            val set = danmakus.getOrPut(videoInfo){ HashSet() }
-            val oldSet = set.toList()
-            set.addAll(it)
-            set.minus(oldSet).forEach {
+    private fun loadDanmaku(danmakuInfo: DanmakuListAdapter.DanmakuInfo, video: Episode){
+        when {
+            danmakuInfo.videoInfo == null -> {
+                danmakuInfo.info = " 获取视频信息..."
+                context.runOnUiThread {  adapter.notifyItemChanged(adapter.data.indexOf(danmakuInfo)) }
+                val videoCall = ProviderModel.getVideoInfo(danmakuInfo.provider, video)
+                videoInfoCalls.add(videoCall)
+                videoCall.enqueue(ApiHelper.buildCallback(view.context, {videoInfo->
+                    danmakuInfo.videoInfo = videoInfo
+                    loadDanmaku(danmakuInfo, video)
+                }, {
+                    danmakuInfo.info = it?.message?.let{" 获取视频信息出错: $it"}?:""
+                    context.runOnUiThread {  adapter.notifyItemChanged(adapter.data.indexOf(danmakuInfo)) }
+                }))
+            }
+            danmakuInfo.key == null -> {
+                danmakuInfo.info = " 获取弹幕信息..."
+                context.runOnUiThread {  adapter.notifyItemChanged(adapter.data.indexOf(danmakuInfo)) }
+                val call = ProviderModel.getDanmakuKey(danmakuInfo.videoInfo?:return)
+                danmakuCalls.add(call)
+                call.enqueue(ApiHelper.buildCallback(view.context, {
+                    danmakuInfo.key = it
+                    doAdd(Math.max(lastPos, 0) * 1000L * 300L, danmakuInfo)
+                }, {
+                    danmakuInfo.info = it?.message?.let{" 获取弹幕信息出错: $it"}?:""
+                    context.runOnUiThread { adapter.notifyItemChanged(adapter.data.indexOf(danmakuInfo)) }
+                }))
+            }
+            else -> doAdd(Math.max(lastPos, 0) * 1000L * 300L, danmakuInfo)
+        }
+    }
+
+    private fun doAdd(pos: Long, danmakuInfo: DanmakuListAdapter.DanmakuInfo){
+        val call = ProviderModel.getDanmaku(danmakuInfo.videoInfo?:return, danmakuInfo.key?:return, (pos / 1000).toInt())
+        danmakuInfo.info = " 加载弹幕..."
+        context.runOnUiThread {  adapter.notifyItemChanged(adapter.data.indexOf(danmakuInfo)) }
+        call.enqueue(ApiHelper.buildCallback(view.context, {
+            val oldSet = danmakuInfo.danmakus.toList()
+            danmakuInfo.danmakus.addAll(it)
+            danmakuInfo.danmakus.minus(oldSet).forEach {
                 val danmaku = danmakuContext.mDanmakuFactory.createDanmaku(it.type, danmakuContext)?: return@forEach
                 danmaku.time = (it.time * 1000).toLong()
                 danmaku.textSize = it.textSize * (parser.displayer.density - 0.6f)
@@ -187,7 +226,11 @@ class DanmakuPresenter(val view: DanmakuView, val context: VideoActivity,
                 danmaku.text = it.context
                 view.addDanmaku(danmaku)
             }
-        }, {onFinish(it)}))
+            context.runOnUiThread {  adapter.notifyItemChanged(adapter.data.indexOf(danmakuInfo)) }
+        }, {
+            danmakuInfo.info = it?.message?.let{" 加载弹幕出错: $it"}?:""
+            context.runOnUiThread {  adapter.notifyItemChanged(adapter.data.indexOf(danmakuInfo)) }
+            onFinish(it)}))
     }
 
     private var lastPos = -1
@@ -195,9 +238,7 @@ class DanmakuPresenter(val view: DanmakuView, val context: VideoActivity,
         val newPos = (pos/1000).toInt() / 300
         if(lastPos == -1 || lastPos != newPos){
             lastPos = newPos
-            danmakuKeys.forEach { videoInfo, key ->
-                doAdd(pos, videoInfo, key)
-            }
+            adapter.data.forEach { doAdd(pos, it) }
         }
     }
 }

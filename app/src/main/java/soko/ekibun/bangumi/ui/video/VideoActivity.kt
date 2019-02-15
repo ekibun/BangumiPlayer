@@ -50,25 +50,8 @@ class VideoActivity : AppCompatActivity() {
         setSupportActionBar(toolbar)
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
 
-        val cookieManager = CookieManager.getInstance()
-        val cookie  = intent.getStringExtra(VideoActivity.EXTRA_COOKIE)?:""
-        var needReload = false
-        cookie.split("; ").filterNot { it.isEmpty() }.forEach {
-            cookieManager.setCookie(Bangumi.SERVER, it) }
-        ApiHelper.buildHttpCall(Bangumi.SERVER, mapOf("User-Agent" to ua)){
-            val doc = Jsoup.parse(it.body()?.string()?:"")
-            if(doc.selectFirst(".guest") != null) return@buildHttpCall null
-            it.headers("set-cookie").forEach {
-                cookieManager.setCookie(Bangumi.SERVER, it)
-                needReload = true }
-            doc.selectFirst("input[name=formhash]")?.attr("value")
-        }.enqueue(ApiHelper.buildCallback(this, { hash->
-            if(hash.isNullOrEmpty()) return@buildCallback
-            formhash = hash?:formhash
-            if(needReload) subjectPresenter.refreshSubject()
-        }))
-
         systemUIPresenter.init()
+        subjectPresenter.init(JsonUtil.toEntity(intent.getStringExtra(VideoActivity.EXTRA_SUBJECT), Subject::class.java)!!)
 
         registerReceiver(receiver, IntentFilter(ACTION_MEDIA_CONTROL + subjectPresenter.subject.id))
         registerReceiver(downloadReceiver, IntentFilter(DownloadService.getBroadcastAction(subjectPresenter.subject)))
@@ -160,14 +143,17 @@ class VideoActivity : AppCompatActivity() {
         }
     }
 
-    val ua by lazy { WebView(this).settings.userAgentString }
-    var formhash = ""
+    val ua get()= Bridge.getUserAgent(this)
+    val cookie get()= Bridge.getCookie(this, Bangumi.SERVER)
+    val formhash get()= subjectPresenter.subject.formhash?:""
     var pauseOnStop = false
     override fun onStart() {
         super.onStart()
         if(videoPresenter.videoModel.player.duration >0 && pauseOnStop)
             videoPresenter.doPlayPause(true)
         pauseOnStop = false
+
+        subjectPresenter.refreshSubject()
     }
 
     override fun onStop() {

@@ -1,20 +1,23 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-              android:clickable="true"
               android:orientation="horizontal"
               android:layout_width="match_parent"
-              android:layout_height="match_parent">
+              android:layout_height="match_parent"
+              android:elevation="100dp">
     <View
             android:id="@+id/hide_danmaku_panel"
             android:layout_width="0dp"
             android:layout_height="match_parent"
             android:layout_weight="3"
             />
-    <ScrollView
+    <soko.ekibun.bangumi.ui.view.NestScrollView
+            android:id="@+id/item_panel"
             android:layout_width="0dp"
             android:layout_height="match_parent"
             android:background="#aa000000"
             android:theme="@style/ThemeOverlay.AppCompat.Dark.ActionBar"
+            android:orientation="vertical"
+            android:descendantFocusability="blocksDescendants"
             android:layout_weight="2">
         <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
                       android:orientation="vertical"
@@ -193,6 +196,20 @@
                         android:text="100%"
                         android:maxLines="1"/>
             </LinearLayout>
+            <View
+                    android:layout_width="match_parent"
+                    android:layout_height="1dp"
+                    android:background="@color/colorTransGrey"/>
+            <TextView android:layout_width="match_parent"
+                      android:layout_height="wrap_content"
+                      android:padding="8dp"
+                      android:text="弹幕池"
+                      android:textSize="@dimen/textSizeMedium"/>
+            <android.support.v7.widget.RecyclerView
+                    android:id="@+id/item_danmaku_list"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content">
+            </android.support.v7.widget.RecyclerView>
         </LinearLayout>
-    </ScrollView>
+    </soko.ekibun.bangumi.ui.view.NestScrollView>
 </LinearLayout>

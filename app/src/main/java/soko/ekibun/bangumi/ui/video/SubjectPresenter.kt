@@ -5,9 +5,7 @@ import android.app.Dialog
 import android.support.design.widget.Snackbar
 import android.support.v7.app.AlertDialog
 import android.support.v7.widget.PopupMenu
-import android.util.Log
 import android.view.*
-import android.webkit.CookieManager
 import kotlinx.android.synthetic.main.activity_video.*
 import kotlinx.android.synthetic.main.dialog_episode.view.*
 import kotlinx.android.synthetic.main.subject_detail.*
@@ -28,15 +26,13 @@ import soko.ekibun.bangumi.ui.view.controller.Controller
 import soko.ekibun.bangumi.util.Bridge
 
 class SubjectPresenter(private val context: VideoActivity){
-    val api by lazy { Bangumi.createInstance() }
     val subjectView by lazy{ SubjectView(context) }
     private val providerInfoModel by lazy { ProviderInfoModel(context) }
 
-    val subject by lazy{ JsonUtil.toEntity(context.intent.getStringExtra(VideoActivity.EXTRA_SUBJECT), Subject::class.java)!! }
+    lateinit var subject: Subject
 
     @SuppressLint("SetTextI18n")
     fun refreshSubject(){
-        subjectView.updateSubject(subject)
         refreshLines(subject)
         refreshSubject(subject)
         refreshCollection(subject)
@@ -59,7 +55,9 @@ class SubjectPresenter(private val context: VideoActivity){
         }
     }
 
-    init{
+    fun init(subject: Subject){
+        this.subject = subject
+        subjectView.updateSubject(subject)
         refreshSubject()
 
         context.videoPresenter.playEpisode  = { ep: Episode ->
@@ -159,7 +157,7 @@ class SubjectPresenter(private val context: VideoActivity){
     fun updateProgress(subject: Subject, eps: List<Episode>, newStatus: String){
         if(newStatus == WATCH_TO){
             val epIds = eps.map{ it.id.toString()}.reduce { acc, s -> "$acc,$s" }
-            Bangumi.updateProgress(eps.last().id, SubjectProgress.EpisodeProgress.EpisodeStatus.WATCH, context.formhash, context.ua, epIds).enqueue(
+            Bangumi.updateProgress(eps.last().id, SubjectProgress.EpisodeProgress.EpisodeStatus.WATCH, context.formhash, context.cookie, context.ua, epIds).enqueue(
                     ApiHelper.buildCallback(context, {
                         val epStatus = SubjectProgress.EpisodeProgress.EpisodeStatus.getStatus(SubjectProgress.EpisodeProgress.EpisodeStatus.WATCH)
                         eps.forEach { it.progress = if(epStatus != null) SubjectProgress.EpisodeProgress(it.id, epStatus) else null }
@@ -170,7 +168,7 @@ class SubjectPresenter(private val context: VideoActivity){
             return
         }
         eps.forEach {episode->
-            Bangumi.updateProgress(episode.id, newStatus, context.formhash, context.ua).enqueue(
+            Bangumi.updateProgress(episode.id, newStatus, context.formhash, context.cookie, context.ua).enqueue(
                     ApiHelper.buildCallback(context, {
                         val epStatus = SubjectProgress.EpisodeProgress.EpisodeStatus.getStatus(newStatus)
                         episode.progress = if(epStatus != null) SubjectProgress.EpisodeProgress(episode.id, epStatus) else null
@@ -184,7 +182,7 @@ class SubjectPresenter(private val context: VideoActivity){
     private var epCalls: Call<List<Episode>>? = null
     private fun refreshProgress(subject: Subject){
         epCalls?.cancel()
-        epCalls = Bangumi.getSubjectEps(subject.id)
+        epCalls = Bangumi.getSubjectEps(subject.id, context.cookie, context.ua)
         epCalls?.enqueue(ApiHelper.buildCallback(context, {
             subjectView.updateEpisode(it, subject)
         }, {}))
@@ -193,8 +191,9 @@ class SubjectPresenter(private val context: VideoActivity){
     private var subjectCall : Call<Subject>? = null
     private fun refreshSubject(subject: Subject){
         subjectCall?.cancel()
-        subjectCall = Bangumi.getSubject(subject)
+        subjectCall = Bangumi.getSubject(subject, context.cookie, context.ua)
         subjectCall?.enqueue(ApiHelper.buildCallback(context, {
+            this.subject = it
             refreshLines(it)
             refreshCollection(it)
             subjectView.updateSubject(it)
@@ -312,7 +311,7 @@ class SubjectPresenter(private val context: VideoActivity){
                 }
                 val newStatus = CollectionStatusType.status[menu.itemId - Menu.FIRST]
                 val newTags = if(body.tag?.isNotEmpty() == true) body.tag.reduce { acc, s -> "$acc $s" } else ""
-                Bangumi.updateCollectionStatus(subject, context.formhash, context.ua,
+                Bangumi.updateCollectionStatus(subject, context.formhash, context.cookie, context.ua,
                         newStatus, newTags, body.comment?:"", body.rating, body.private).enqueue(ApiHelper.buildCallback(context,{
                     subject.interest = it
                     refreshCollection(subject)
@@ -323,7 +322,7 @@ class SubjectPresenter(private val context: VideoActivity){
         }
 
         context.item_collect.setOnLongClickListener {
-            EditSubjectDialog.showDialog(context, subject, body, context.formhash, context.ua){
+            EditSubjectDialog.showDialog(context, subject, body, context.formhash, context.cookie, context.ua){
                 if(it) removeCollection(subject)
                 else refreshCollection(subject)
             }
