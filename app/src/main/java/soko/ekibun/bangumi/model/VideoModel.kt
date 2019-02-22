@@ -6,6 +6,7 @@ import android.view.SurfaceView
 import com.google.android.exoplayer2.*
 import com.google.android.exoplayer2.source.ExtractorMediaSource
 import com.google.android.exoplayer2.source.TrackGroupArray
+import com.google.android.exoplayer2.source.UnrecognizedInputFormatException
 import com.google.android.exoplayer2.source.hls.HlsMediaSource
 import com.google.android.exoplayer2.trackselection.AdaptiveTrackSelection
 import com.google.android.exoplayer2.trackselection.DefaultTrackSelector
@@ -42,7 +43,10 @@ class VideoModel(private val context: Context, private val onAction: Listener) {
             override fun onPlaybackParametersChanged(playbackParameters: PlaybackParameters?) {}
             override fun onSeekProcessed() {}
             override fun onTracksChanged(trackGroups: TrackGroupArray?, trackSelections: TrackSelectionArray?) {}
-            override fun onPlayerError(error: ExoPlaybackException) { onAction.onError(error) }
+            override fun onPlayerError(error: ExoPlaybackException) {
+                val retry = retryVideo
+                if(error.cause is UnrecognizedInputFormatException && retry != null) retry()
+                else onAction.onError(error) }
             override fun onLoadingChanged(isLoading: Boolean) {}
             override fun onPositionDiscontinuity(reason: Int) {}
             override fun onRepeatModeChanged(repeatMode: Int) {}
@@ -92,7 +96,8 @@ class VideoModel(private val context: Context, private val onAction: Listener) {
         }
     }
 
-    fun play(request: Pair<String,Map<String, String>>, surface: SurfaceView, useCache: Boolean = false){
+    var retryVideo: (()->Unit)? = null
+    fun play(request: Pair<String,Map<String, String>>, surface: SurfaceView, useCache: Boolean = false, useHls: Boolean = false){
         val url = request.first
         player.setVideoSurfaceView(surface)
         val httpSourceFactory= DefaultHttpDataSourceFactory(request.second["User-Agent"]?:"exoplayer", null, DefaultHttpDataSource.DEFAULT_CONNECT_TIMEOUT_MILLIS, DefaultHttpDataSource.DEFAULT_READ_TIMEOUT_MILLIS, true)
@@ -103,7 +108,10 @@ class VideoModel(private val context: Context, private val onAction: Listener) {
         }
         val dataSourceFactory = DefaultDataSourceFactory(surface.context, null, videoCacheModel.getDataSourceFactory(request.second, useCache))
         //DefaultHttpDataSourceFactory("exoplayer", null, DefaultHttpDataSource.DEFAULT_CONNECT_TIMEOUT_MILLIS, DefaultHttpDataSource.DEFAULT_READ_TIMEOUT_MILLIS, true)/*if(cache) videoCacheModel.getCacheDataSourceFactory(url) else videoCacheModel.factory*/
-        val videoSource = if(url.contains("m3u8"))
+        retryVideo = if(!useHls) {
+            { play(request, surface, useCache, true) }
+        }else null
+        val videoSource = if(useHls)
             HlsMediaSource.Factory(dataSourceFactory).createMediaSource(Uri.parse(url))
         else ExtractorMediaSource.Factory(dataSourceFactory).createMediaSource(Uri.parse(url))
 
