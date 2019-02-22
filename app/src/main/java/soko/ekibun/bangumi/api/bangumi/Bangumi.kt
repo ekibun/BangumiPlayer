@@ -26,8 +26,8 @@ object Bangumi {
     const val SERVER = "https://bgm.tv"
 
     @SuppressLint("UseSparseArrays")
-    fun getSubject(subject: Subject, cookie: String, ua: String): Call<Subject>{
-        return ApiHelper.buildHttpCall(subject.url?:"", mapOf("User-Agent" to ua, "Cookie" to cookie)){ response ->
+    fun getSubject(subject: Subject, ua: String): Call<Subject>{
+        return ApiHelper.buildHttpCall(subject.url?:"", mapOf("User-Agent" to ua)){ response ->
             val doc = Jsoup.parse(response.body()?.string()?:"")
             val type = when(doc.selectFirst("#navMenuNeue .focus").text()){
                 "动画" -> SubjectType.ANIME
@@ -209,9 +209,9 @@ object Bangumi {
         }
     }
 
-    fun updateCollectionStatus(subject: Subject, formhash: String, cookie: String, ua: String, status: String, tags: String, comment: String, rating: Int, privacy: Int = 0): Call<Collection>{
+    fun updateCollectionStatus(subject: Subject, formhash: String, ua: String, status: String, tags: String, comment: String, rating: Int, privacy: Int = 0): Call<Collection>{
         val index = CollectionStatusType.status.indexOf(status)
-        return ApiHelper.buildHttpCall("$SERVER/subject/${subject.id}/interest/update?gh=$formhash", mapOf("User-Agent" to ua, "Cookie" to cookie), FormBody.Builder()
+        return ApiHelper.buildHttpCall("$SERVER/subject/${subject.id}/interest/update?gh=$formhash", mapOf("User-Agent" to ua), FormBody.Builder()
                 .add("referer", "ajax")
                 .add("interest", (index + 1).toString())
                 .add("rating", rating.toString())
@@ -230,16 +230,16 @@ object Bangumi {
 
     fun updateProgress(id: Int,
                        @SubjectProgress.EpisodeProgress.EpisodeStatus.Companion.EpStatusType status: String,
-                       formhash: String, cookie: String, ua: String,
+                       formhash: String, ua: String,
                        epIds: String? = null): Call<Boolean>{
-        return ApiHelper.buildHttpCall("$SERVER/subject/ep/$id/status/$status?gh=$formhash&ajax=1", mapOf("User-Agent" to ua, "Cookie" to cookie), FormBody.Builder().add("ep_id", epIds?:id.toString()).build() ){
+        return ApiHelper.buildHttpCall("$SERVER/subject/ep/$id/status/$status?gh=$formhash&ajax=1", mapOf("User-Agent" to ua), FormBody.Builder().add("ep_id", epIds?:id.toString()).build() ){
             return@buildHttpCall it.body()?.string()?.contains("\"status\":\"ok\"") == true
         }
     }
 
     //eps
-    fun getSubjectEps(subject: Int, cookie: String, ua: String): Call<List<Episode>>{
-        return ApiHelper.buildHttpCall("$SERVER/subject/$subject/ep", mapOf("User-Agent" to ua, "Cookie" to cookie)){
+    fun getSubjectEps(subject: Int, ua: String): Call<List<Episode>>{
+        return ApiHelper.buildHttpCall("$SERVER/subject/$subject/ep", mapOf("User-Agent" to ua)){
             var cat = ""
             val doc = Jsoup.parse(it.body()?.string()?:"")
             val type = when(doc.selectFirst("#navMenuNeue .focus").text()){

@@ -20,14 +20,13 @@ import soko.ekibun.bangumi.api.bangumi.bean.Subject
 
 class EditSubjectDialog: DialogFragment() {
     companion object {
-        fun showDialog(context:AppCompatActivity, subject: Subject, status: Collection, formhash: String, cookie: String, ua: String, callback: (Boolean)->Unit){
+        fun showDialog(context:AppCompatActivity, subject: Subject, status: Collection, formhash: String, ua: String, callback: (Boolean)->Unit){
             val dialog = EditSubjectDialog()
             dialog.subject = subject
             dialog.status = status
             dialog.status = status
             dialog.formhash = formhash
             dialog.ua = ua
-            dialog.cookie = cookie
             dialog.callback = callback
             dialog.show(context.supportFragmentManager, "edit")
         }
@@ -44,7 +43,6 @@ class EditSubjectDialog: DialogFragment() {
     lateinit var subject: Subject
     lateinit var status: Collection
     lateinit var formhash: String
-    lateinit var cookie: String
     lateinit var ua: String
     lateinit var callback: (Boolean)->Unit
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
@@ -93,7 +91,7 @@ class EditSubjectDialog: DialogFragment() {
             val newComment = view.item_comment.text.toString()
             val newPrivacy = if(view.item_private.isChecked) 1 else 0
             val newTags = if(adapter.data.isNotEmpty()) adapter.data.reduce { acc, s -> "$acc $s" } else ""
-            Bangumi.updateCollectionStatus(subject, formhash, cookie, ua,
+            Bangumi.updateCollectionStatus(subject, formhash, ua,
                     newStatus, newTags, newComment, newRating, newPrivacy).enqueue(ApiHelper.buildCallback(context,{},{
                 callback(false)
             }))

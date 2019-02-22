@@ -16,7 +16,6 @@ import android.view.Menu
 import android.view.MenuItem
 import android.view.View
 import kotlinx.android.synthetic.main.activity_video.*
-import soko.ekibun.bangumi.api.bangumi.bean.AccessToken
 import soko.ekibun.bangumi.api.bangumi.bean.Subject
 import soko.ekibun.bangumi.util.JsonUtil
 import soko.ekibun.bangumiplayer.R
@@ -26,8 +25,6 @@ import android.webkit.CookieManager
 import android.webkit.WebView
 import android.widget.Toast
 import kotlinx.android.synthetic.main.subject_episode.*
-import org.jsoup.Jsoup
-import soko.ekibun.bangumi.api.ApiHelper
 import soko.ekibun.bangumi.api.bangumi.Bangumi
 import soko.ekibun.bangumi.api.bangumi.bean.Episode
 import soko.ekibun.bangumi.model.ThemeModel
@@ -42,9 +39,16 @@ class VideoActivity : AppCompatActivity() {
     val systemUIPresenter: SystemUIPresenter by lazy{ SystemUIPresenter(this) }
     val subjectPresenter: SubjectPresenter by lazy{ SubjectPresenter(this) }
 
+    val cookieManager by lazy { CookieManager.getInstance() }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_video)
+
+        val cookie = intent?.getStringExtra(EXTRA_COOKIE)?:""
+        if(cookie.isNotEmpty()) cookie.split("; ").forEach {
+            cookieManager.setCookie(Bangumi.SERVER, it)
+        }
 
         ThemeModel.setTheme(this, ThemeModel(Bridge.getContext(this)).getTheme())
         setSupportActionBar(toolbar)
@@ -143,8 +147,7 @@ class VideoActivity : AppCompatActivity() {
         }
     }
 
-    val ua get()= Bridge.getUserAgent(this)
-    val cookie get()= Bridge.getCookie(this, Bangumi.SERVER)
+    val ua by lazy { WebView(this).settings.userAgentString }
     val formhash get()= subjectPresenter.subject.formhash?:""
     var pauseOnStop = false
     override fun onStart() {
