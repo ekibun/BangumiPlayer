@@ -5,6 +5,7 @@ import android.content.Intent
 import android.content.pm.ActivityInfo
 import android.graphics.Color
 import android.net.Uri
+import android.preference.PreferenceManager
 import android.support.constraint.ConstraintLayout
 import android.support.design.widget.AppBarLayout
 import android.support.design.widget.Snackbar
@@ -88,6 +89,34 @@ class VideoPresenter(private val context: VideoActivity){
         }, { context.systemUIPresenter.isLandscape })
     }
 
+    var videoWidth = 0
+    var videoHeight = 0
+    fun resizeVideoSurface(){
+        if(videoWidth * videoHeight == 0) return
+        val videoFrame = PreferenceManager.getDefaultSharedPreferences(context).getInt(DanmakuPresenter.VIDEO_FRAME, DanmakuPresenter.VIDEO_FRAME_AUTO)
+        when(videoFrame){
+            DanmakuPresenter.VIDEO_FRAME_AUTO -> {
+                context.video_surface.scaleX = Math.min(context.video_surface.measuredWidth.toFloat(), (context.video_surface.measuredHeight * videoWidth / videoHeight).toFloat()) / context.video_surface.measuredWidth
+                context.video_surface.scaleY = Math.min(context.video_surface.measuredHeight.toFloat(), (context.video_surface.measuredWidth * videoHeight / videoWidth).toFloat()) / context.video_surface.measuredHeight
+            }
+            DanmakuPresenter.VIDEO_FRAME_STRENTCH -> {
+                context.video_surface.scaleX = 1f
+                context.video_surface.scaleY = 1f
+            }
+            DanmakuPresenter.VIDEO_FRAME_FILL -> {
+                context.video_surface.scaleX = Math.max(context.video_surface.measuredWidth.toFloat(), (context.video_surface.measuredHeight * videoWidth / videoHeight).toFloat()) / context.video_surface.measuredWidth
+                context.video_surface.scaleY = Math.max(context.video_surface.measuredHeight.toFloat(), (context.video_surface.measuredWidth * videoHeight / videoWidth).toFloat()) / context.video_surface.measuredHeight
+            }
+            DanmakuPresenter.VIDEO_FRAME_16_9 -> {
+                context.video_surface.scaleX = Math.min(context.video_surface.measuredWidth.toFloat(), (context.video_surface.measuredHeight * 16 / 9).toFloat()) / context.video_surface.measuredWidth
+                context.video_surface.scaleY = Math.min(context.video_surface.measuredHeight.toFloat(), (context.video_surface.measuredWidth * 9 / 16).toFloat()) / context.video_surface.measuredHeight
+            }
+            DanmakuPresenter.VIDEO_FRAME_4_3 -> {
+                context.video_surface.scaleX = Math.min(context.video_surface.measuredWidth.toFloat(), (context.video_surface.measuredHeight * 4 / 3).toFloat()) / context.video_surface.measuredWidth
+                context.video_surface.scaleY = Math.min(context.video_surface.measuredHeight.toFloat(), (context.video_surface.measuredWidth * 3 / 4).toFloat()) / context.video_surface.measuredHeight
+            }
+        }
+    }
     val videoModel: VideoModel by lazy{
         VideoModel(context, object : VideoModel.Listener {
             override fun onReady(playWhenReady: Boolean) {
@@ -121,8 +150,9 @@ class VideoPresenter(private val context: VideoActivity){
             }
 
             override fun onVideoSizeChange(width: Int, height: Int, unappliedRotationDegrees: Int, pixelWidthHeightRatio: Float) {
-                context.video_surface.scaleX = Math.min(context.video_surface.measuredWidth.toFloat(), (context.video_surface.measuredHeight * width * pixelWidthHeightRatio / height)) / context.video_surface.measuredWidth
-                context.video_surface.scaleY = Math.min(context.video_surface.measuredHeight.toFloat(), (context.video_surface.measuredWidth * height * pixelWidthHeightRatio / width)) / context.video_surface.measuredHeight
+                videoWidth = (width * pixelWidthHeightRatio).toInt()
+                videoHeight = height
+                resizeVideoSurface()
             }
 
             override fun onError(error: ExoPlaybackException) {

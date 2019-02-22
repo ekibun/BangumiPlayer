@@ -84,6 +84,25 @@ class DanmakuPresenter(val view: DanmakuView, val context: VideoActivity,
         context.danmaku_bottom.setOnClickListener(onClick)
         context.danmaku_special.setOnClickListener(onClick)
 
+        val onClickVideoFrame = View.OnClickListener{ view: View ->
+            val key = when(view){
+                context.video_frame_auto -> VIDEO_FRAME_AUTO
+                context.video_frame_stretch -> VIDEO_FRAME_STRENTCH
+                context.video_frame_fill -> VIDEO_FRAME_FILL
+                context.video_frame_16_9 -> VIDEO_FRAME_16_9
+                context.video_frame_4_3 -> VIDEO_FRAME_4_3
+                else -> return@OnClickListener
+            }
+            sp.edit().putInt(VIDEO_FRAME, key).apply()
+            context.videoPresenter.resizeVideoSurface()
+            updateValue()
+        }
+        context.video_frame_auto.setOnClickListener(onClickVideoFrame)
+        context.video_frame_stretch.setOnClickListener(onClickVideoFrame)
+        context.video_frame_fill.setOnClickListener(onClickVideoFrame)
+        context.video_frame_16_9.setOnClickListener(onClickVideoFrame)
+        context.video_frame_4_3.setOnClickListener(onClickVideoFrame)
+
         context.item_danmaku_list.isNestedScrollingEnabled = false
         context.item_danmaku_list.layoutManager = LinearLayoutManager(context)
         context.item_danmaku_list.adapter = adapter
@@ -92,6 +111,13 @@ class DanmakuPresenter(val view: DanmakuView, val context: VideoActivity,
     @SuppressLint("SetTextI18n")
     fun updateValue(){
         val colorActive = ResourceUtil.resolveColorAttr(context, R.attr.colorPrimary)
+        //videoFrame
+        val videoFrame = sp.getInt(VIDEO_FRAME, VIDEO_FRAME_AUTO)
+        context.video_frame_auto.setTextColor(if(videoFrame == VIDEO_FRAME_AUTO) colorActive else Color.WHITE)
+        context.video_frame_stretch.setTextColor(if(videoFrame == VIDEO_FRAME_STRENTCH) colorActive else Color.WHITE)
+        context.video_frame_fill.setTextColor(if(videoFrame == VIDEO_FRAME_FILL) colorActive else Color.WHITE)
+        context.video_frame_16_9.setTextColor(if(videoFrame == VIDEO_FRAME_16_9) colorActive else Color.WHITE)
+        context.video_frame_4_3.setTextColor(if(videoFrame == VIDEO_FRAME_4_3) colorActive else Color.WHITE)
         //block
         danmakuContext.ftDanmakuVisibility = sp.getBoolean(DANMAKU_ENABLE_TOP, true)
         danmakuContext.r2LDanmakuVisibility = sp.getBoolean(DANMAKU_ENABLE_SCROLL, true)
@@ -155,6 +181,13 @@ class DanmakuPresenter(val view: DanmakuView, val context: VideoActivity,
         const val DANMAKU_ENABLE_SCROLL = "danmakuEnableScroll"
         const val DANMAKU_ENABLE_BOTTOM = "danmakuEnableBottom"
         const val DANMAKU_ENABLE_SPECIAL = "danmakuEnableSpecial"
+
+        const val VIDEO_FRAME = "videoFrame"
+        const val VIDEO_FRAME_AUTO = 0
+        const val VIDEO_FRAME_STRENTCH = 1
+        const val VIDEO_FRAME_FILL = 2
+        const val VIDEO_FRAME_16_9 = 3
+        const val VIDEO_FRAME_4_3 = 4
     }
 
     private val videoInfoCalls = ArrayList<Call<BaseProvider.VideoInfo>>()
