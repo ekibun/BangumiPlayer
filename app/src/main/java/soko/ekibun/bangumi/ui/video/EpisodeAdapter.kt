@@ -45,19 +45,19 @@ class EpisodeAdapter(val context: VideoActivity, data: MutableList<SectionEntity
             getViewByPosition(context.episode_detail_list, index, R.id.item_layout)?.let{
                 it.item_download_info.text = "获取视频信息"
             }
-            context.videoPresenter.videoModel.getVideo(item.t, context.subjectPresenter.subject, BackgroundWebView(helper.itemView.context), {loaded->
+            context.videoPresenter.videoModel.getVideo(item.t.id.toString(), item.t, context.subjectPresenter.subject, BackgroundWebView(helper.itemView.context), {loaded->
                 getViewByPosition(context.episode_detail_list, index, R.id.item_layout)?.let{
                     it.item_download_info.text = if(loaded  == true)"解析视频地址" else ""
                 }
-            }){request, _ ->
+            }){request, error ->
                 helper.itemView.post {
-                    getViewByPosition(context.episode_detail_list, index, R.id.item_layout)?.let{
+                    if(error != null) getViewByPosition(context.episode_detail_list, index, R.id.item_layout)?.let{
                         val downloader = App.getVideoCacheModel(helper.itemView.context).getDownloader(data.getOrNull(index)?.t?:return@let, context.subjectPresenter.subject)
                         updateDownload(it, downloader?.downloadPercentage?: Float.NaN, downloader?.downloadedBytes?:0L, downloader != null)
                     }
+                    if(request == null || request.first.startsWith("/")) return@post
+                    DownloadService.download(helper.itemView.context, item.t, context.subjectPresenter.subject, request.first, request.second)
                 }
-                if(request == null || request.first.startsWith("/")) return@getVideo
-                DownloadService.download(helper.itemView.context, item.t, context.subjectPresenter.subject, request.first, request.second)
             }
         }
         helper.itemView.item_download.setOnLongClickListener {

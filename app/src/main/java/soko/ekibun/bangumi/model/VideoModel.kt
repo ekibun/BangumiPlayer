@@ -71,25 +71,29 @@ class VideoModel(private val context: Context, private val onAction: Listener) {
         player
     }
 
-    var videoInfoCall: Call<BaseProvider.VideoInfo>? = null
-    var videoCall: Call<Pair<String, Map<String,String>>>? = null
+    private var videoInfoCall: HashMap<String, Call<BaseProvider.VideoInfo>> = HashMap()
+    private var videoCall: HashMap<String, Call<Pair<String, Map<String,String>>>> = HashMap()
     private val videoCacheModel by lazy{ App.getVideoCacheModel(context)}
     private val providerInfoModel by lazy{ ProviderInfoModel(context) }
-    fun getVideo(episode: Episode, subject: Subject, webView: BackgroundWebView, onGetVideoInfo: (Boolean?)->Unit, onGetVideo: (Pair<String, Map<String,String>>?, Boolean?)->Unit) {
+    fun getVideo(key: String, episode: Episode, subject: Subject, webView: BackgroundWebView, onGetVideoInfo: (Boolean?)->Unit, onGetVideo: (Pair<String, Map<String,String>>?, Boolean?)->Unit) {
         val videoCache = videoCacheModel.getCache(episode, subject)
         if (videoCache != null) {
             onGetVideoInfo(true)
             onGetVideo(Pair(videoCache.url, videoCache.header), true)
         } else {
-            val info = providerInfoModel.getInfos(subject)?.getDefaultProvider()?: return
-            videoInfoCall?.cancel()
-            videoCall?.cancel()
-            videoInfoCall = ProviderModel.getVideoInfo(info, episode)
-            videoInfoCall?.enqueue(ApiHelper.buildCallback(context, { video ->
+            val info = providerInfoModel.getInfos(subject)?.getDefaultProvider()
+            if(info == null){
+                onGetVideoInfo(false)
+                return
+            }
+            videoInfoCall[key]?.cancel()
+            videoCall[key]?.cancel()
+            videoInfoCall[key] = ProviderModel.getVideoInfo(info, episode)
+            videoInfoCall[key]?.enqueue(ApiHelper.buildCallback(context, { video ->
                 onGetVideoInfo(true)
-                videoCall = ParserModel.getVideo(webView, video, info.parser
+                videoCall[key] = ParserModel.getVideo(webView, video, info.parser
                         ?: ParserInfo("", ""))
-                videoCall?.enqueue(ApiHelper.buildCallback(context, {
+                videoCall[key]?.enqueue(ApiHelper.buildCallback(context, {
                     onGetVideo(it, false)
                 }, { if(it != null) onGetVideo(null,if(it.toString().contains("Canceled"))null else false) }))
             }, { if(it != null) onGetVideoInfo(if(it.toString().contains("Canceled"))null else false)}))

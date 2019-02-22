@@ -263,9 +263,13 @@ class VideoPresenter(private val context: VideoActivity){
         //videoCall?.cancel()
         val webView = BackgroundWebView(context)
         context.item_logcat.setOnClickListener {
-            context.startActivity(Intent.createChooser(Intent(Intent.ACTION_VIEW, Uri.parse(webView.url)), webView.url))
+            try{
+                context.startActivity(Intent.createChooser(Intent(Intent.ACTION_VIEW, Uri.parse(webView.url)), webView.url))
+            }catch (e: Exception){
+                e.printStackTrace()
+            }
         }
-        videoModel.getVideo(episode, subject, webView, {
+        videoModel.getVideo("play",episode, subject, webView, {
             loadVideoInfo = it
             if(loadVideoInfo == true)
             context.runOnUiThread { danmakuPresenter.loadDanmaku(infos.filter { it.loadDanmaku && ProviderModel.getProvider(it.siteId)?.hasDanmaku == true }, episode) }
