@@ -20,7 +20,9 @@ import soko.ekibun.bangumi.api.bangumi.bean.Subject
 import soko.ekibun.bangumi.util.JsonUtil
 import soko.ekibun.bangumiplayer.R
 import android.content.*
+import android.support.v7.widget.LinearLayoutManager
 import android.util.Log
+import android.view.animation.AnimationUtils
 import android.webkit.CookieManager
 import android.webkit.WebView
 import android.widget.Toast
@@ -37,9 +39,11 @@ import soko.ekibun.bangumi.util.Bridge
 class VideoActivity : AppCompatActivity() {
     val videoPresenter: VideoPresenter by lazy { VideoPresenter(this) }
     val systemUIPresenter: SystemUIPresenter by lazy{ SystemUIPresenter(this) }
-    val subjectPresenter: SubjectPresenter by lazy{ SubjectPresenter(this) }
+    //val subjectPresenter: SubjectPresenter by lazy{ SubjectPresenter(this) }
 
     val cookieManager by lazy { CookieManager.getInstance() }
+
+    val videoPagerAdapter by lazy { VideoPagerAdapter(this, this.supportFragmentManager, item_pager) }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -55,10 +59,25 @@ class VideoActivity : AppCompatActivity() {
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
 
         systemUIPresenter.init()
-        subjectPresenter.init(JsonUtil.toEntity(intent.getStringExtra(VideoActivity.EXTRA_SUBJECT), Subject::class.java)!!)
 
-        registerReceiver(receiver, IntentFilter(ACTION_MEDIA_CONTROL + subjectPresenter.subject.id))
-        registerReceiver(downloadReceiver, IntentFilter(DownloadService.getBroadcastAction(subjectPresenter.subject)))
+        videoPagerAdapter.init(JsonUtil.toEntity(intent.getStringExtra(VideoActivity.EXTRA_SUBJECT), Subject::class.java)!!)
+
+        episode_detail_list.adapter = videoPagerAdapter.subjectFragment.episodeDetailAdapter
+        episode_detail_list.layoutManager = LinearLayoutManager(this)
+
+        item_close.setOnClickListener {
+            showEpisodeDetail(false)
+        }
+
+        registerReceiver(receiver, IntentFilter(ACTION_MEDIA_CONTROL + videoPagerAdapter.subject.id))
+        registerReceiver(downloadReceiver, IntentFilter(DownloadService.getBroadcastAction(videoPagerAdapter.subject)))
+    }
+
+    fun showEpisodeDetail(show: Boolean){
+        episode_detail_list_header.visibility = if(show) View.VISIBLE else View.INVISIBLE
+        episode_detail_list_header.animation = AnimationUtils.loadAnimation(this, if(show) R.anim.move_in_bottom else R.anim.move_out_bottom)
+        episode_detail_list.visibility = if(show) View.VISIBLE else View.INVISIBLE
+        episode_detail_list.animation = AnimationUtils.loadAnimation(this, if(show) R.anim.move_in_bottom else R.anim.move_out_bottom)
     }
 
     override fun onCreateOptionsMenu(menu: Menu?): Boolean {
@@ -85,14 +104,14 @@ class VideoActivity : AppCompatActivity() {
                 val percent = intent.getFloatExtra(DownloadService.EXTRA_PERCENT, Float.NaN)
                 val bytes = intent.getLongExtra(DownloadService.EXTRA_BYTES, 0L)
 
-                val index = subjectPresenter.subjectView.episodeDetailAdapter.data.indexOfFirst { it.t?.id == episode.id }
-                subjectPresenter.subjectView.episodeDetailAdapter.getViewByPosition(episode_detail_list, index, R.id.item_layout)?.let{
-                    subjectPresenter.subjectView.episodeDetailAdapter.updateDownload(it, percent, bytes, intent.getBooleanExtra(DownloadService.EXTRA_CANCEL, true), !intent.hasExtra(DownloadService.EXTRA_CANCEL))
+                val index = videoPagerAdapter.subjectFragment.episodeDetailAdapter.data.indexOfFirst { it.t?.id == episode.id }
+                videoPagerAdapter.subjectFragment.episodeDetailAdapter.getViewByPosition(episode_detail_list, index, R.id.item_layout)?.let{
+                    videoPagerAdapter.subjectFragment.episodeDetailAdapter.updateDownload(it, percent, bytes, intent.getBooleanExtra(DownloadService.EXTRA_CANCEL, true), !intent.hasExtra(DownloadService.EXTRA_CANCEL))
                 }
 
-                val epIndex = subjectPresenter.subjectView.episodeAdapter.data.indexOfFirst { it.id == episode.id }
-                subjectPresenter.subjectView.episodeAdapter.getViewByPosition(episode_list, epIndex, R.id.item_layout)?.let{
-                    subjectPresenter.subjectView.episodeAdapter.updateDownload(it, percent, bytes, intent.getBooleanExtra(DownloadService.EXTRA_CANCEL, true), !intent.hasExtra(DownloadService.EXTRA_CANCEL))
+                val epIndex = videoPagerAdapter.subjectFragment.episodeAdapter.data.indexOfFirst { it.id == episode.id }
+                videoPagerAdapter.subjectFragment.episodeAdapter.getViewByPosition(episode_list, epIndex, R.id.item_layout)?.let{
+                    videoPagerAdapter.subjectFragment.episodeAdapter.updateDownload(it, percent, bytes, intent.getBooleanExtra(DownloadService.EXTRA_CANCEL, true), !intent.hasExtra(DownloadService.EXTRA_CANCEL))
                 }
             }catch (e: Exception){
                 e.printStackTrace()
@@ -128,18 +147,18 @@ class VideoActivity : AppCompatActivity() {
     fun setPictureInPictureParams(playPause: Boolean){
         if(Build.VERSION.SDK_INT >= 26) {
             val actionPrev = RemoteAction(Icon.createWithResource(this, R.drawable.ic_prev), getString(R.string.next_video), getString(R.string.next_video),
-                    PendingIntent.getBroadcast(this, CONTROL_TYPE_PREV, Intent(ACTION_MEDIA_CONTROL + subjectPresenter.subject.id).putExtra(EXTRA_CONTROL_TYPE,
+                    PendingIntent.getBroadcast(this, CONTROL_TYPE_PREV, Intent(ACTION_MEDIA_CONTROL + videoPagerAdapter.subject.id).putExtra(EXTRA_CONTROL_TYPE,
                             CONTROL_TYPE_PREV), PendingIntent.FLAG_UPDATE_CURRENT))
             actionPrev.isEnabled = videoPresenter.prevEpisode() != null
             val actionNext = RemoteAction(Icon.createWithResource(this, R.drawable.ic_next), getString(R.string.next_video), getString(R.string.next_video),
-                    PendingIntent.getBroadcast(this, CONTROL_TYPE_NEXT, Intent(ACTION_MEDIA_CONTROL + subjectPresenter.subject.id).putExtra(EXTRA_CONTROL_TYPE,
+                    PendingIntent.getBroadcast(this, CONTROL_TYPE_NEXT, Intent(ACTION_MEDIA_CONTROL + videoPagerAdapter.subject.id).putExtra(EXTRA_CONTROL_TYPE,
                             CONTROL_TYPE_NEXT), PendingIntent.FLAG_UPDATE_CURRENT))
             actionNext.isEnabled = videoPresenter.nextEpisode() != null
             try{
                 setPictureInPictureParams(PictureInPictureParams.Builder().setActions(listOf(
                         actionPrev,
                         RemoteAction(Icon.createWithResource(this, if (playPause) R.drawable.ic_play else R.drawable.ic_pause), getString(R.string.play_pause), getString(R.string.play_pause),
-                                PendingIntent.getBroadcast(this, CONTROL_TYPE_PLAY, Intent(ACTION_MEDIA_CONTROL + subjectPresenter.subject.id).putExtra(EXTRA_CONTROL_TYPE,
+                                PendingIntent.getBroadcast(this, CONTROL_TYPE_PLAY, Intent(ACTION_MEDIA_CONTROL + videoPagerAdapter.subject.id).putExtra(EXTRA_CONTROL_TYPE,
                                         if (playPause) CONTROL_TYPE_PLAY else CONTROL_TYPE_PAUSE), PendingIntent.FLAG_UPDATE_CURRENT)),
                         actionNext
                 )).build())
@@ -148,7 +167,7 @@ class VideoActivity : AppCompatActivity() {
     }
 
     val ua by lazy { WebView(this).settings.userAgentString }
-    val formhash get()= subjectPresenter.subject.formhash?:""
+    val formhash get()= videoPagerAdapter.subject.formhash?:""
     var pauseOnStop = false
     override fun onStart() {
         super.onStart()
@@ -156,7 +175,7 @@ class VideoActivity : AppCompatActivity() {
             videoPresenter.doPlayPause(true)
         pauseOnStop = false
 
-        subjectPresenter.refreshSubject()
+        videoPagerAdapter.refreshSubject()
     }
 
     override fun onStop() {
@@ -177,7 +196,7 @@ class VideoActivity : AppCompatActivity() {
         when {
             systemUIPresenter.isLandscape -> requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
             Build.VERSION.SDK_INT > 23 && isInMultiWindowMode -> Toast.makeText(this, "请先退出多窗口模式", Toast.LENGTH_SHORT).show()
-            episode_detail_list.visibility == View.VISIBLE -> subjectPresenter.subjectView.showEpisodeDetail(false)
+            episode_detail_list.visibility == View.VISIBLE -> showEpisodeDetail(false)
             else -> finish()
         }
     }
@@ -193,10 +212,10 @@ class VideoActivity : AppCompatActivity() {
         when (item.itemId) {
             android.R.id.home -> processBack()
             R.id.action_share -> {
-                AppUtil.shareString(this, subjectPresenter.subject.name + " " + subjectPresenter.subject.url)
+                AppUtil.shareString(this, videoPagerAdapter.subject.name + " " + videoPagerAdapter.subject.url)
             }
             R.id.action_refresh ->{
-                subjectPresenter.refreshSubject()
+                videoPagerAdapter.refreshSubject()
             }
         }
         return super.onOptionsItemSelected(item)

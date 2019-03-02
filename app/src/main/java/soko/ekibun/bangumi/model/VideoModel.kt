@@ -20,6 +20,7 @@ import soko.ekibun.bangumi.ui.view.BackgroundWebView
 import soko.ekibun.bangumi.App
 import soko.ekibun.bangumi.parser.ParserInfo
 import soko.ekibun.bangumi.provider.BaseProvider
+import soko.ekibun.bangumi.provider.ProviderInfo
 
 
 class VideoModel(private val context: Context, private val onAction: Listener) {
@@ -74,14 +75,12 @@ class VideoModel(private val context: Context, private val onAction: Listener) {
     private var videoInfoCall: HashMap<String, Call<BaseProvider.VideoInfo>> = HashMap()
     private var videoCall: HashMap<String, Call<Pair<String, Map<String,String>>>> = HashMap()
     private val videoCacheModel by lazy{ App.getVideoCacheModel(context)}
-    private val providerInfoModel by lazy{ ProviderInfoModel(context) }
-    fun getVideo(key: String, episode: Episode, subject: Subject, webView: BackgroundWebView, onGetVideoInfo: (Boolean?)->Unit, onGetVideo: (Pair<String, Map<String,String>>?, Boolean?)->Unit) {
+    fun getVideo(key: String, episode: Episode, subject: Subject, webView: BackgroundWebView, info: ProviderInfo, onGetVideoInfo: (Boolean?)->Unit, onGetVideo: (Pair<String, Map<String,String>>?, Boolean?)->Unit) {
         val videoCache = videoCacheModel.getCache(episode, subject)
         if (videoCache != null) {
             onGetVideoInfo(true)
             onGetVideo(Pair(videoCache.url, videoCache.header), true)
         } else {
-            val info = providerInfoModel.getInfos(subject)?.getDefaultProvider()
             if(info == null){
                 onGetVideoInfo(false)
                 return

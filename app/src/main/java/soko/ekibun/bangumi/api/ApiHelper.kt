@@ -145,9 +145,9 @@ object ApiHelper {
                 webView.onPageFinished={
                     webView.evaluateJavascript(js){
                         Log.v("javascript", it.toString())
-                        val url = it?.trim('"', '\'')?:""
-                        if(url.startsWith("http") == true)
-                            callback.onResponse(this, Response.success(Pair(url, HashMap())))
+                        val video_url = it?.trim('"', '\'')?:""
+                        if(video_url.startsWith("http"))
+                            callback.onResponse(this, Response.success(Pair(video_url, HashMap())))
                     }
                 }
                 val map = HashMap<String, String>()

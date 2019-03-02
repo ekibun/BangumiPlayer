@@ -235,7 +235,7 @@ class VideoPresenter(private val context: VideoActivity){
     var updatePlayProgress: (Int)->Unit = {}
     val processModel by lazy { ProgressModel(context) }
     var startAt: Long? = null
-    fun play(episode: Episode, subject: Subject, infos: List<ProviderInfo>){
+    fun play(episode: Episode, subject: Subject,info: ProviderInfo, infos: List<ProviderInfo>){
         updatePlayProgress = {
             processModel.saveProgress(subject, ProgressModel.Info(episode, it))
         }
@@ -269,7 +269,8 @@ class VideoPresenter(private val context: VideoActivity){
                 e.printStackTrace()
             }
         }
-        videoModel.getVideo("play",episode, subject, webView, {
+
+        videoModel.getVideo("play",episode, subject, webView, info, {
             loadVideoInfo = it
             if(loadVideoInfo == true)
             context.runOnUiThread { danmakuPresenter.loadDanmaku(infos.filter { it.loadDanmaku && ProviderModel.getProvider(it.siteId)?.hasDanmaku == true }, episode) }

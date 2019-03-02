@@ -14,6 +14,7 @@ import soko.ekibun.bangumi.api.bangumi.bean.Episode
 import soko.ekibun.bangumi.ui.view.BackgroundWebView
 import soko.ekibun.bangumi.util.ResourceUtil
 import soko.ekibun.bangumi.App
+import soko.ekibun.bangumi.model.ProviderInfoModel
 import soko.ekibun.bangumiplayer.R
 import soko.ekibun.bangumi.model.VideoCacheModel
 import soko.ekibun.bangumi.service.DownloadService
@@ -21,6 +22,7 @@ import soko.ekibun.bangumi.service.DownloadService
 class EpisodeAdapter(val context: VideoActivity, data: MutableList<SectionEntity<Episode>>? = null) :
         BaseSectionQuickAdapter<SectionEntity<Episode>, BaseViewHolder>
         (R.layout.item_episode, R.layout.header_episode, data) {
+    private val providerInfoModel by lazy{ ProviderInfoModel(context) }
 
     override fun convertHead(helper: BaseViewHolder, item: SectionEntity<Episode>) {
         helper.getView<TextView>(R.id.item_header).visibility = if(data.indexOf(item) == 0) View.GONE else View.VISIBLE
@@ -42,32 +44,33 @@ class EpisodeAdapter(val context: VideoActivity, data: MutableList<SectionEntity
         helper.itemView.item_desc.setTextColor(color)
         helper.itemView.item_desc.alpha = alpha
         helper.itemView.item_download.setOnClickListener {
+            val info = providerInfoModel.getInfos(context.videoPagerAdapter.subject)?.getDefaultProvider()?:return@setOnClickListener
             getViewByPosition(context.episode_detail_list, index, R.id.item_layout)?.let{
                 it.item_download_info.text = "获取视频信息"
             }
-            context.videoPresenter.videoModel.getVideo(item.t.id.toString(), item.t, context.subjectPresenter.subject, BackgroundWebView(helper.itemView.context), {loaded->
+            context.videoPresenter.videoModel.getVideo(item.t.id.toString(), item.t, context.videoPagerAdapter.subject, BackgroundWebView(helper.itemView.context), info, {loaded->
                 getViewByPosition(context.episode_detail_list, index, R.id.item_layout)?.let{
                     it.item_download_info.text = if(loaded  == true)"解析视频地址" else ""
                 }
             }){request, error ->
                 helper.itemView.post {
                     if(error != null) getViewByPosition(context.episode_detail_list, index, R.id.item_layout)?.let{
-                        val downloader = App.getVideoCacheModel(helper.itemView.context).getDownloader(data.getOrNull(index)?.t?:return@let, context.subjectPresenter.subject)
+                        val downloader = App.getVideoCacheModel(helper.itemView.context).getDownloader(data.getOrNull(index)?.t?:return@let, context.videoPagerAdapter.subject)
                         updateDownload(it, downloader?.downloadPercentage?: Float.NaN, downloader?.downloadedBytes?:0L, downloader != null)
                     }
                     if(request == null || request.first.startsWith("/")) return@post
-                    DownloadService.download(helper.itemView.context, item.t, context.subjectPresenter.subject, request.first, request.second)
+                    DownloadService.download(helper.itemView.context, item.t, context.videoPagerAdapter.subject, request.first, request.second)
                 }
             }
         }
         helper.itemView.item_download.setOnLongClickListener {
-            val cache = App.getVideoCacheModel(helper.itemView.context).getCache(item.t, context.subjectPresenter.subject)
+            val cache = App.getVideoCacheModel(helper.itemView.context).getCache(item.t, context.videoPagerAdapter.subject)
             if(cache != null)
-                DownloadService.remove(helper.itemView.context, item.t, context.subjectPresenter.subject)
+                DownloadService.remove(helper.itemView.context, item.t, context.videoPagerAdapter.subject)
             true
         }
 
-        val downloader = App.getVideoCacheModel(helper.itemView.context).getDownloader(item.t, context.subjectPresenter.subject)
+        val downloader = App.getVideoCacheModel(helper.itemView.context).getDownloader(item.t, context.videoPagerAdapter.subject)
         updateDownload(helper.itemView, downloader?.downloadPercentage?: Float.NaN, downloader?.downloadedBytes?:0L, downloader != null)
     }
 
