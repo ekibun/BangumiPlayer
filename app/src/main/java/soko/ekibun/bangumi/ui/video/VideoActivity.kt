@@ -9,7 +9,6 @@ import android.content.pm.PackageManager
 import android.content.res.Configuration
 import android.graphics.drawable.Icon
 import android.os.Build
-import android.support.v7.app.AppCompatActivity
 import android.os.Bundle
 import android.view.KeyEvent
 import android.view.Menu
@@ -21,22 +20,25 @@ import soko.ekibun.bangumi.util.JsonUtil
 import soko.ekibun.bangumiplayer.R
 import android.content.*
 import android.support.v7.widget.LinearLayoutManager
+import android.support.v7.widget.RecyclerView
 import android.util.Log
 import android.view.animation.AnimationUtils
 import android.webkit.CookieManager
 import android.webkit.WebView
 import android.widget.Toast
 import kotlinx.android.synthetic.main.subject_episode.*
+import kotlinx.android.synthetic.main.subject_episode.view.*
 import soko.ekibun.bangumi.api.bangumi.Bangumi
 import soko.ekibun.bangumi.api.bangumi.bean.Episode
 import soko.ekibun.bangumi.model.ThemeModel
 import soko.ekibun.bangumi.util.AppUtil
 import soko.ekibun.bangumi.util.StorageUtil
 import soko.ekibun.bangumi.service.DownloadService
+import soko.ekibun.bangumi.ui.view.SwipeBackActivity
 import soko.ekibun.bangumi.util.Bridge
 
 
-class VideoActivity : AppCompatActivity() {
+class VideoActivity : SwipeBackActivity() {
     val videoPresenter: VideoPresenter by lazy { VideoPresenter(this) }
     val systemUIPresenter: SystemUIPresenter by lazy{ SystemUIPresenter(this) }
     //val subjectPresenter: SubjectPresenter by lazy{ SubjectPresenter(this) }
@@ -61,6 +63,14 @@ class VideoActivity : AppCompatActivity() {
         systemUIPresenter.init()
 
         videoPagerAdapter.init(JsonUtil.toEntity(intent.getStringExtra(VideoActivity.EXTRA_SUBJECT), Subject::class.java)!!)
+
+        val swipeTouchListener = View.OnTouchListener{ v, _ ->
+            if((v as? RecyclerView)?.canScrollHorizontally(1) == true || (v as? RecyclerView)?.canScrollHorizontally(-1) == true)
+                shouldCancelActivity = false
+            false
+        }
+        videoPagerAdapter.subjectFragment.detail.episode_list.setOnTouchListener(swipeTouchListener)
+        videoPagerAdapter.subjectFragment.detail.season_list.setOnTouchListener(swipeTouchListener)
 
         episode_detail_list.adapter = videoPagerAdapter.subjectFragment.episodeDetailAdapter
         episode_detail_list.layoutManager = LinearLayoutManager(this)
@@ -191,18 +201,19 @@ class VideoActivity : AppCompatActivity() {
         unregisterReceiver(downloadReceiver)
     }
 
-    //back
-    private fun processBack(){
-        when {
-            systemUIPresenter.isLandscape -> requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
-            Build.VERSION.SDK_INT > 23 && isInMultiWindowMode -> Toast.makeText(this, "请先退出多窗口模式", Toast.LENGTH_SHORT).show()
-            episode_detail_list.visibility == View.VISIBLE -> showEpisodeDetail(false)
-            else -> finish()
-        }
+    override fun processBack(){
+        if(systemUIPresenter.isLandscape || videoPresenter.videoModel.player.playWhenReady || episode_detail_list.visibility == View.VISIBLE) return
+        super.processBack()
     }
+
     override fun onKeyDown(keyCode: Int, event: KeyEvent): Boolean {
         if (keyCode == KeyEvent.KEYCODE_BACK){
-            processBack()
+            when {
+                systemUIPresenter.isLandscape -> requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
+                Build.VERSION.SDK_INT > 23 && isInMultiWindowMode -> Toast.makeText(this, "请先退出多窗口模式", Toast.LENGTH_SHORT).show()
+                episode_detail_list.visibility == View.VISIBLE -> showEpisodeDetail(false)
+                else -> finish()
+            }
             return true
         }
         return super.onKeyDown(keyCode, event)
@@ -210,7 +221,10 @@ class VideoActivity : AppCompatActivity() {
 
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
         when (item.itemId) {
-            android.R.id.home -> processBack()
+            android.R.id.home -> when {
+                systemUIPresenter.isLandscape -> requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
+                else -> finish()
+            }
             R.id.action_share -> {
                 AppUtil.shareString(this, videoPagerAdapter.subject.name + " " + videoPagerAdapter.subject.url)
             }

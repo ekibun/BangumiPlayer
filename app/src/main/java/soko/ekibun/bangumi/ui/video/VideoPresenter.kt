@@ -47,6 +47,9 @@ class VideoPresenter(private val context: VideoActivity){
                 Controller.Action.NEXT -> {
                     nextEpisode()?.let{playEpisode(it)}
                 }
+                Controller.Action.PREV -> {
+                    prevEpisode()?.let{playEpisode(it)}
+                }
                 Controller.Action.DANMAKU -> {
                     if(danmakuPresenter.view.isShown)
                         danmakuPresenter.view.hide() else danmakuPresenter.view.show()
@@ -64,7 +67,7 @@ class VideoPresenter(private val context: VideoActivity){
                     context.runOnUiThread{
                         updatePauseResume()
                         updateProgress()
-                        controller.updateNext(nextEpisode() != null)
+                        controller.updatePrevNext(prevEpisode() != null, nextEpisode() != null)
                         context.item_mask.visibility = View.VISIBLE
                         context.toolbar.visibility = View.VISIBLE
                         if(context.systemUIPresenter.isLandscape)
@@ -246,7 +249,7 @@ class VideoPresenter(private val context: VideoActivity){
         loadVideo = null
         loadDanmaku = null
         exception = null
-        controller.updateNext(nextEpisode() != null)
+        controller.updatePrevNext(prevEpisode() != null, nextEpisode() != null)
         videoModel.player.playWhenReady = false
         controller.updateLoading(true)
         context.video_surface_container.visibility = View.VISIBLE

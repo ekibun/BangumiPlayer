@@ -19,6 +19,15 @@
                 android:layout_height="wrap_content"
                 android:padding="4dp">
             <ImageButton
+                    android:id="@+id/ctr_prev"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:src="@drawable/ic_prev"
+                    android:padding="6dp"
+                    android:layout_margin="4dp"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:contentDescription="@string/prev_video"/>
+            <ImageButton
                     android:id="@+id/ctr_pause"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"

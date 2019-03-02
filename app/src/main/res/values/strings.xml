@@ -23,6 +23,7 @@
     <string name="danmaku">弹幕</string>
     <string name="fullscreen">全屏</string>
     <string name="play_pause">播放</string>
+    <string name="prev_video">上一集</string>
     <string name="next_video">下一集</string>
     <string name="user_cancel">用户取消</string>
 

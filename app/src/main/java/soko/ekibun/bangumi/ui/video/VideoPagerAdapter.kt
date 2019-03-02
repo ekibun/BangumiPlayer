@@ -24,7 +24,6 @@ import soko.ekibun.bangumi.model.ProviderInfoModel
 import soko.ekibun.bangumi.provider.ProviderInfoList
 import soko.ekibun.bangumi.ui.subject.EditSubjectDialog
 import soko.ekibun.bangumi.ui.video.fragment.VideoFragment
-import soko.ekibun.bangumi.ui.video.fragment.sakugabooru.SakugaFragment
 import soko.ekibun.bangumi.ui.video.fragment.subject.SubjectFragment
 import soko.ekibun.bangumi.ui.video.line.LineDialog
 import soko.ekibun.bangumi.util.Bridge
@@ -32,10 +31,9 @@ import soko.ekibun.bangumiplayer.R
 
 class VideoPagerAdapter(private val context: VideoActivity, fragmentManager: FragmentManager, pager: ViewPager): FragmentPagerAdapter(fragmentManager) {
     val subjectFragment = SubjectFragment(context)
-    val sakugaFragment = SakugaFragment(context)
     private val providerInfoModel by lazy { ProviderInfoModel(context) }
     val fragments: List<VideoFragment> = listOf(
-            subjectFragment, sakugaFragment
+            subjectFragment
     )
 
     var subject: Subject = Subject()

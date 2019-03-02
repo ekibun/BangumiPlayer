@@ -16,6 +16,7 @@ class SmallController(view: ViewGroup, onClick:(Action)->Unit, onSeekBarChangeLi
     override val ctrSeekBar: SeekBar by lazy{ ctrView.ctr_seek }
     override val ctrTitleText: TextView? = null
     override val ctrNext: ImageButton by lazy{ ctrView.ctr_next }
+    override val ctrPrev: ImageButton? = null
     override val ctrDanmaku: ImageButton? = null
 
     init{

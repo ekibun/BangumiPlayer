@@ -9,6 +9,7 @@ import kotlinx.android.synthetic.main.controller_large.view.*
 import soko.ekibun.bangumiplayer.R
 
 class LargeController(view: ViewGroup, onClick:(Action)->Unit, onSeekBarChangeListener: SeekBar.OnSeekBarChangeListener): Controller(R.layout.controller_large, view) {
+
     override val ctrLayout: View by lazy{ ctrView.ctr_layout }
     override val ctrPlayPause: ImageButton by lazy{ ctrView.ctr_pause }
     override val ctrTimeText: TextView by lazy{ ctrView.ctr_time }
@@ -16,6 +17,7 @@ class LargeController(view: ViewGroup, onClick:(Action)->Unit, onSeekBarChangeLi
     override val ctrSeekBar: SeekBar by lazy{ ctrView.ctr_seek }
     override val ctrTitleText: TextView? by lazy{ ctrView.ctr_title }
     override val ctrNext: ImageButton? by lazy{ ctrView.ctr_next }
+    override val ctrPrev: ImageButton? by lazy{ ctrView.ctr_prev }
     override val ctrDanmaku: ImageButton? by lazy{ ctrView.ctr_danmaku }
 
     init{

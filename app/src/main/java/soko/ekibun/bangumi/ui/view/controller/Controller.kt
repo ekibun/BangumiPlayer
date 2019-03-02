@@ -23,10 +23,11 @@ abstract class Controller(layoutRes: Int, view: ViewGroup) {
     abstract val ctrSeekBar: SeekBar
     abstract val ctrTitleText: TextView?
     abstract val ctrNext: ImageButton?
+    abstract val ctrPrev: ImageButton?
     abstract val ctrDanmaku: ImageButton?
 
     enum class Action {
-        PLAY_PAUSE, FULLSCREEN, NEXT, DANMAKU, SEEK_TO, SHOW, HIDE, TITLE, DANMAKU_SETTING
+        PLAY_PAUSE, FULLSCREEN, NEXT, DANMAKU, SEEK_TO, SHOW, HIDE, TITLE, DANMAKU_SETTING, PREV, NEXT_FRAME, PREV_FRAME
     }
 
     fun initView(view: ViewGroup, onClick:(Action)->Unit, onSeekBarChangeListener: SeekBar.OnSeekBarChangeListener){
@@ -38,6 +39,9 @@ abstract class Controller(layoutRes: Int, view: ViewGroup) {
         }
         ctrNext?.setOnClickListener {
             onClick(Action.NEXT)
+        }
+        ctrPrev?.setOnClickListener {
+            onClick(Action.PREV)
         }
         ctrDanmaku?.setOnClickListener {
             onClick(Action.DANMAKU)
@@ -67,6 +71,7 @@ abstract class Controller(layoutRes: Int, view: ViewGroup) {
             ctrSeekBar.visibility = visibility
             ctrTitleText?.visibility = visibility
             ctrNext?.visibility = visibility
+            ctrPrev?.visibility = visibility
             ctrDanmaku?.visibility = visibility }
     }
 
@@ -86,8 +91,10 @@ abstract class Controller(layoutRes: Int, view: ViewGroup) {
         ctrView.post { ctrDanmaku?.alpha = if(show) 1f else 0.5f }
     }
 
-    fun updateNext(hasNext: Boolean) {
-        ctrView.post { ctrNext?.alpha = if(hasNext) 1f else 0.5f }
+    fun updatePrevNext(hasPrev:Boolean, hasNext: Boolean) {
+        ctrView.post {
+            ctrPrev?.alpha = if(hasPrev) 1f else 0.5f
+            ctrNext?.alpha = if(hasNext) 1f else 0.5f }
     }
 
     fun setTitle(title: String){

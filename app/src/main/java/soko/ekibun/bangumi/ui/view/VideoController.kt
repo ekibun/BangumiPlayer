@@ -153,9 +153,9 @@ class VideoController(view: ViewGroup,
             i.updateDanmaku(show)
     }
 
-    fun updateNext(hasNext: Boolean){
+    fun updatePrevNext(hasPrev: Boolean, hasNext: Boolean){
         for(i in controller.values)
-            i.updateNext(hasNext)
+            i.updatePrevNext(hasPrev, hasNext)
     }
 
     fun setTitle(title: String){
