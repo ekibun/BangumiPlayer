@@ -9,6 +9,7 @@ import android.preference.PreferenceManager
 import android.support.constraint.ConstraintLayout
 import android.support.design.widget.AppBarLayout
 import android.support.design.widget.Snackbar
+import android.util.Log
 import android.view.View
 import android.view.WindowManager
 import android.view.animation.AnimationUtils
@@ -38,7 +39,7 @@ class VideoPresenter(private val context: VideoActivity){
     }
 
     val controller: VideoController by lazy{
-        VideoController(context.controller_frame, { action: Controller.Action, param: Any ->
+        VideoController(context.controller_frame, context, { action: Controller.Action, param: Any ->
             when (action) {
                 Controller.Action.PLAY_PAUSE -> doPlayPause(!videoModel.player.playWhenReady)
                 Controller.Action.FULLSCREEN ->{
@@ -120,6 +121,7 @@ class VideoPresenter(private val context: VideoActivity){
             }
         }
     }
+    var endFlag = false
     val videoModel: VideoModel by lazy{
         VideoModel(context, object : VideoModel.Listener {
             override fun onReady(playWhenReady: Boolean) {
@@ -140,6 +142,7 @@ class VideoPresenter(private val context: VideoActivity){
                     context.toolbar.visibility = View.INVISIBLE
                 }
                 controller.updateLoading(false)
+                endFlag = true
             }
 
             override fun onBuffering() {
@@ -149,7 +152,10 @@ class VideoPresenter(private val context: VideoActivity){
 
             override fun onEnded() {
                 doPlayPause(false)
-                nextEpisode()?.let{playEpisode(it)}
+                if(endFlag) {
+                    endFlag = false
+                    nextEpisode()?.let { playEpisode(it) }
+                }
             }
 
             override fun onVideoSizeChange(width: Int, height: Int, unappliedRotationDegrees: Int, pixelWidthHeightRatio: Float) {
@@ -299,7 +305,7 @@ class VideoPresenter(private val context: VideoActivity){
             } }
             controller.timer.schedule(playLoopTask, 0, 1000)
             context.video_surface.keepScreenOn = true
-            if(!controller.isShow)context.toolbar.visibility = View.INVISIBLE
+            //if(!controller.isShow)context.toolbar.visibility = View.INVISIBLE
             danmakuPresenter.view.resume()
         }else{
             context.video_surface.keepScreenOn = false

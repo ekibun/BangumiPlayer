@@ -8,11 +8,12 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.SeekBar
 import kotlinx.android.synthetic.main.controller_extra.view.*
+import soko.ekibun.bangumi.ui.video.VideoActivity
 import soko.ekibun.bangumiplayer.R
 import soko.ekibun.bangumi.ui.view.controller.*
 import java.util.*
 
-class VideoController(view: ViewGroup,
+class VideoController(view: ViewGroup, videoActivity: VideoActivity,
                       private val onAction:(Controller.Action, param: Any)->Unit,
                       private val isFullScreen: ()->Boolean = {false}){
     private val ctrExtra: View by lazy {
@@ -27,6 +28,7 @@ class VideoController(view: ViewGroup,
         var lastTime = 0L
         var dblclick = false
         view.setOnTouchListener { _, event ->
+            videoActivity.shouldCancelActivity = false
             when(event.action){
                 MotionEvent.ACTION_DOWN->{
                     val curTime = System.currentTimeMillis()
