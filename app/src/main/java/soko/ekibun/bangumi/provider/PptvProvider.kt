@@ -31,23 +31,22 @@ class PptvProvider: BaseProvider {
     }
 
     override fun getVideoInfo(info: ProviderInfo, video: Episode): Call<BaseProvider.VideoInfo> {
-        return ApiHelper.buildBridgeCall(ApiHelper.buildHttpCall("http://v.pptv.com/page/${info.id}.html"){
-            return@buildHttpCall Regex(""""id":([0-9]*),""").find(it.body()?.string()?:"")?.groupValues?.get(1) ?: throw Exception("cannot get id")
-        }) {
-            return@buildBridgeCall ApiHelper.buildHttpCall("http://apis.web.pptv.com/show/videoList?format=jsonp&pid=$it", header){
-                val src = JsonUtil.toJsonObject(it.body()?.string()?:"")
-                src.get("data").asJsonObject.get("list").asJsonArray?.map{it.asJsonObject}?.forEach {
-                    if(it.get("title").asString.toFloatOrNull() == video.sort + info.offset){
-                        val videoInfo = BaseProvider.VideoInfo(
-                                it.get("id").asString,
-                                siteId,
-                                it.get("url").asString
-                        )
-                        Log.v("video", videoInfo.toString())
-                        return@buildHttpCall videoInfo
-                    } }
-                throw Exception("not found")
-            }
+        return ApiHelper.buildHttpCall("http://v.pptv.com/page/${info.id}.html", mapOf("User-Agent" to
+                "Mozilla/5.0 (Linux; Android 7.0; SM-G892A Build/NRD90M; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/67.0.3396.87 Mobile Safari/537.36")){
+            val webcfg = (it.body()?.string()?:"").substringAfter("webcfg").substringBefore("</script>").trim(' ', ';', '=')
+            Log.v("webcfg", webcfg)
+            JsonUtil.toJsonObject(webcfg).getAsJsonObject("result").getAsJsonArray("modules").first { it.asJsonObject.get("tid").asString == "t_epi_num_list" }
+                    .asJsonObject.getAsJsonObject("data").getAsJsonArray("dlist").map{it.asJsonObject}.forEach {
+                if(it.get("title").asString.toFloatOrNull() == video.sort + info.offset){
+                    val videoInfo = BaseProvider.VideoInfo(
+                            it.get("id").asString,
+                            siteId,
+                            "http:"+ it.get("link").asString
+                    )
+                    Log.v("video", videoInfo.toString())
+                    return@buildHttpCall videoInfo
+                } }
+            throw Exception("not found")
         }
     }
 

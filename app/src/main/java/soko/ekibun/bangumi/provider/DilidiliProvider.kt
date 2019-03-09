@@ -36,12 +36,12 @@ class DilidiliProvider: BaseProvider {
         val ids = info.id.split(" ")
         val vid = ids[0]
         val num = ids.getOrNull(1)?.toIntOrNull()?:0
-        return ApiHelper.buildHttpCall("http://m.dilidili.wang/$vid", header){
+        return ApiHelper.buildHttpCall("http://m.dilidili.name$vid", header){
             val d = Jsoup.parse(it.body()?.string()?:"")
             d.selectFirst(".episode").select("a").filter { it.text().toFloatOrNull() == video.sort + info.offset }.getOrNull(num)?.let {
                 val url = it.attr("href")
                 val videoInfo = BaseProvider.VideoInfo(
-                        Regex("""dilidili.wang/watch[0-9]?/([^/]*)/""").find(url)?.groupValues?.get(1) ?: "",
+                        Regex("""dilidili.name/watch[0-9]?/([^/]*)/""").find(url)?.groupValues?.get(1) ?: "",
                         siteId,
                         url
                 )
