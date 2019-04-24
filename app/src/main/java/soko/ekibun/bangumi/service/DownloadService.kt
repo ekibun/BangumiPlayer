@@ -8,7 +8,6 @@ import android.content.Context
 import android.content.Intent
 import android.os.AsyncTask
 import android.os.IBinder
-import soko.ekibun.bangumi.api.bangumi.bean.AccessToken
 import soko.ekibun.bangumi.api.bangumi.bean.Episode
 import soko.ekibun.bangumi.api.bangumi.bean.Subject
 import soko.ekibun.bangumi.util.JsonUtil

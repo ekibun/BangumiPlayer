@@ -48,7 +48,7 @@ class EpisodeAdapter(val context: VideoActivity, data: MutableList<SectionEntity
             getViewByPosition(context.episode_detail_list, index, R.id.item_layout)?.let{
                 it.item_download_info.text = "获取视频信息"
             }
-            context.videoPresenter.videoModel.getVideo(item.t.id.toString(), item.t, context.videoPagerAdapter.subject, BackgroundWebView(helper.itemView.context), info, {loaded->
+            context.videoPresenter.videoModel.getVideo(item.t.parseSort(), item.t, context.videoPagerAdapter.subject, BackgroundWebView(helper.itemView.context), info, {loaded->
                 getViewByPosition(context.episode_detail_list, index, R.id.item_layout)?.let{
                     it.item_download_info.text = if(loaded  == true)"解析视频地址" else ""
                 }

@@ -40,6 +40,13 @@ class BackgroundWebView(context: Context): WebView(context) {
                 onPageFinished(url)
                 super.onPageFinished(view, url)
             }
+            override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest): Boolean {
+                val url = request.url.toString()
+                if(!url.startsWith("http")){
+                    return true
+                }
+                return false
+            }
             override fun shouldInterceptRequest(view: WebView, request: WebResourceRequest): WebResourceResponse? {
                 Log.v("loadres", request.url.toString() +" " + request.requestHeaders.toString())
                 onInterceptRequest(request)

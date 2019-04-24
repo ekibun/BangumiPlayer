@@ -25,5 +25,6 @@ data class ProviderInfo(
         const val NICOTV = 11
         const val SILISILI = 12
         const val HALIHALI = 13
+        const val NINGMOE = 14
     }
 }

@@ -75,7 +75,7 @@ class VideoModel(private val context: Context, private val onAction: Listener) {
     private var videoInfoCall: HashMap<String, Call<BaseProvider.VideoInfo>> = HashMap()
     private var videoCall: HashMap<String, Call<Pair<String, Map<String,String>>>> = HashMap()
     private val videoCacheModel by lazy{ App.getVideoCacheModel(context)}
-    fun getVideo(key: String, episode: Episode, subject: Subject, webView: BackgroundWebView, info: ProviderInfo, onGetVideoInfo: (Boolean?)->Unit, onGetVideo: (Pair<String, Map<String,String>>?, Boolean?)->Unit) {
+    fun getVideo(key: String, episode: Episode, subject: Subject, webView: BackgroundWebView, info: ProviderInfo?, onGetVideoInfo: (Boolean?)->Unit, onGetVideo: (Pair<String, Map<String,String>>?, Boolean?)->Unit) {
         val videoCache = videoCacheModel.getCache(episode, subject)
         if (videoCache != null) {
             onGetVideoInfo(true)

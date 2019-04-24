@@ -19,7 +19,8 @@ object ProviderModel{
             UrlProvider(),
             NicotvProvider(),
             SilisiliProvider(),
-            HalihaliProvider()
+            HalihaliProvider(),
+            NingmoeProvider()
     )
 
     fun getProvider(siteId: Int): BaseProvider?{
