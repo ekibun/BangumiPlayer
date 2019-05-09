@@ -13,7 +13,7 @@
     <string name="phrase_time">%1$s/%2$s</string>
     <string name="rate_count">%1$d人</string>
     <string name="phrase_reply">%1$d 回复</string>
-    <string name="phrase_updating">更新至第 %1$d 话</string>
+    <string name="parse_update_to">更新至%1$s</string>
     <string name="load_video_failed">获取视频失败</string>
     <string name="download_cache">离线缓存</string>
     <string name="settings">设置</string>

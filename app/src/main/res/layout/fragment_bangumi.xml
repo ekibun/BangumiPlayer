@@ -4,7 +4,8 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:fillViewport="true"
-        xmlns:android="http://schemas.android.com/apk/res/android">
+        xmlns:android="http://schemas.android.com/apk/res/android"
+        xmlns:tools="http://schemas.android.com/tools">
     <LinearLayout android:id="@+id/subject_detail"
                   android:layout_width="match_parent"
                   android:layout_height="match_parent"
@@ -26,7 +27,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:clickable="true"
-                android:foreground="?android:attr/selectableItemBackground"
+                android:background="?android:attr/selectableItemBackground"
                 android:focusable="true"
                 android:padding="12dp">
             <TextView
@@ -37,13 +38,15 @@
                     android:maxLines="1"
                     android:layout_gravity="center_vertical"
                     android:textColor="?android:textColorPrimary"
+                    tools:text="上次看到 第 3 话 00:33"
                     android:ellipsize="end"/>
             <TextView
                     android:id="@+id/item_progress_play"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:drawableStart="@drawable/ic_play"
+                    android:drawableStart="@drawable/ic_play_accent"
                     android:gravity="center_vertical"
+                    tools:text=" 继续观看"
                     android:textColor="?colorAccent"/>
         </LinearLayout>
         <include android:id="@+id/item_episodes"
@@ -60,11 +63,12 @@
             <android.support.v7.widget.RecyclerView
                     android:id="@+id/line_list"
                     android:layout_width="match_parent"
+                    tools:listitem="@layout/item_provider"
                     android:layout_height="wrap_content"/>
             <TextView
                     android:padding="12dp"
                     android:clickable="true"
-                    android:foreground="?android:attr/selectableItemBackground"
+                    android:background="?android:attr/selectableItemBackground"
                     android:focusable="true"
                     android:id="@+id/item_lines"
                     android:layout_width="match_parent"

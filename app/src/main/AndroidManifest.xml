@@ -2,8 +2,8 @@
 <manifest
         xmlns:android="http://schemas.android.com/apk/res/android"
         xmlns:tools="http://schemas.android.com/tools"
-        android:sharedUserId="soko.ekibun.bangumi.share"
-        package="soko.ekibun.bangumiplayer">
+        package="soko.ekibun.bangumiplayer"
+        android:sharedUserId="soko.ekibun.bangumi.share">
 
     <uses-permission android:name="android.permission.INTERNET"/>
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
@@ -21,7 +21,7 @@
             tools:ignore="UnusedAttribute">
         <activity
                 android:name="soko.ekibun.bangumi.ui.video.VideoActivity"
-                android:configChanges="screenSize|smallestScreenSize|screenLayout|orientation|uiMode"
+                android:configChanges="screenSize|smallestScreenSize|screenLayout|orientation"
                 android:supportsPictureInPicture="true"
                 tools:targetApi="n">
             <intent-filter>

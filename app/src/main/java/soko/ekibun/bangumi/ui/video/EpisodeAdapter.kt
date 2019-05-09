@@ -3,7 +3,6 @@ package soko.ekibun.bangumi.ui.video
 import android.support.v7.widget.RecyclerView
 import android.text.format.Formatter
 import android.view.View
-import android.widget.TextView
 import com.chad.library.adapter.base.BaseSectionQuickAdapter
 import com.chad.library.adapter.base.BaseViewHolder
 import com.chad.library.adapter.base.entity.SectionEntity
@@ -25,7 +24,7 @@ class EpisodeAdapter(val context: VideoActivity, data: MutableList<SectionEntity
     private val providerInfoModel by lazy{ ProviderInfoModel(context) }
 
     override fun convertHead(helper: BaseViewHolder, item: SectionEntity<Episode>) {
-        helper.getView<TextView>(R.id.item_header).visibility = if(data.indexOf(item) == 0) View.GONE else View.VISIBLE
+        //helper.getView<TextView>(R.id.item_header).visibility = if(data.indexOf(item) == 0) View.GONE else View.VISIBLE
         helper.setText(R.id.item_header, item.header)
     }
 
@@ -89,7 +88,7 @@ class EpisodeAdapter(val context: VideoActivity, data: MutableList<SectionEntity
                 if(VideoCacheModel.isFinished(percent)) R.drawable.ic_cloud_done else if(download) R.drawable.ic_pause else R.drawable.ic_download )
     }
 
-    //val sectionHeader = SECTION_HEADER_VIEW
+    val sectionHeader = SECTION_HEADER_VIEW
 
     override fun onAttachedToRecyclerView(recyclerView: RecyclerView) {
         super.onAttachedToRecyclerView(recyclerView)

@@ -44,7 +44,7 @@ class SubjectFragment(private val videoActivity: VideoActivity): VideoFragment()
     val episodeDetailAdapter = EpisodeAdapter(videoActivity)
     val seasonAdapter = SeasonAdapter()
     val lineAdapter = LineAdapter()
-    val seasonlayoutManager= LinearLayoutManager(videoActivity)
+    val seasonLayoutManager= LinearLayoutManager(videoActivity)
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
         onSubjectChange(subject)
@@ -56,8 +56,8 @@ class SubjectFragment(private val videoActivity: VideoActivity): VideoFragment()
         val detail = videoActivity.layoutInflater.inflate(R.layout.fragment_bangumi, videoActivity.root_layout, false)
 
         detail.season_list.adapter = seasonAdapter
-        seasonlayoutManager.orientation = LinearLayoutManager.HORIZONTAL
-        detail.season_list.layoutManager = seasonlayoutManager
+        seasonLayoutManager.orientation = LinearLayoutManager.HORIZONTAL
+        detail.season_list.layoutManager = seasonLayoutManager
         detail.season_list.isNestedScrollingEnabled = false
 
         detail.episode_list.adapter = episodeAdapter
@@ -162,10 +162,11 @@ class SubjectFragment(private val videoActivity: VideoActivity): VideoFragment()
         Log.v("eps", episodes.toString())
         val cacheEpisode = App.getVideoCacheModel(detail.context).getBangumiVideoCacheList(subject.id)?.videoList?.map{it.value.video}?:ArrayList()
         bangumiEpisode = episodes?: bangumiEpisode
-        val eps = bangumiEpisode.filter { (it.status?:"") in listOf("Air") }.size
-        detail.episode_detail.text = (if(!cacheEpisode.isEmpty()) "已缓存 ${cacheEpisode.size} 话" else "") +
-                (if(!cacheEpisode.isEmpty() && !bangumiEpisode.isEmpty()) " / " else "")+
-                (if(!bangumiEpisode.isEmpty()) detail.context.getString(if(eps == bangumiEpisode.size) R.string.phrase_full else R.string.phrase_updating, eps) else "")
+        val mainEps = bangumiEpisode.filter { it.type == Episode.TYPE_MAIN || it.type == Episode.TYPE_MUSIC }
+        val eps = mainEps.filter { (it.status ?: "") in listOf("Air") }
+        detail.episode_detail.text = (if(cacheEpisode.isNotEmpty()) "已缓存 ${cacheEpisode.size} 话" else "") +
+                (if(cacheEpisode.isNotEmpty()) " / " else "")+ if(eps.size == mainEps.size) detail.context.getString(R.string.phrase_full, eps.size) else
+            eps.lastOrNull()?.parseSort()?.let { detail.context.getString(R.string.parse_update_to, it)}?: ""
         val maps = LinkedHashMap<String, List<Episode>>()
         bangumiEpisode.plus(cacheEpisode).distinctBy { it.id }.forEach {
             val key = it.cat?:Episode.getTypeName(it.type)

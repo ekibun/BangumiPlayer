@@ -285,6 +285,7 @@ class VideoPresenter(private val context: VideoActivity){
             context.runOnUiThread { danmakuPresenter.loadDanmaku(infos.filter { it.loadDanmaku && ProviderModel.getProvider(it.siteId)?.hasDanmaku == true }, episode) }
         },{request, useCache ->
             if(useCache != null) loadVideo = request != null
+            if(context.isDestroyed) return@getVideo
             if(request != null && useCache != null) videoModel.play(request, context.video_surface, useCache)
         })
     }

@@ -31,6 +31,7 @@
                 android:layout_height="wrap_content"
                 android:ellipsize="end"
                 android:maxLines="1"
+                tools:text="第 1 话"
                 android:textSize="@dimen/textSizeSmall"/>
 
         <TextView
@@ -40,6 +41,7 @@
                 android:textSize="@dimen/textSizeMedium"
                 android:ellipsize="end"
                 android:paddingTop="4dp"
+                tools:text="Episode Name"
                 android:maxLines="1"/>
     </LinearLayout>
     <TextView
@@ -58,6 +60,7 @@
             android:backgroundTint="?colorAccent"
             app:layout_constraintTop_toTopOf="@+id/item_container"
             app:layout_constraintRight_toRightOf="@+id/item_container"
+            tools:text="看过"
             android:textSize="@dimen/textSizeSmall"/>
     <ImageView
             android:id="@+id/item_icon"
@@ -65,5 +68,6 @@
             android:layout_height="20dp"
             app:layout_constraintRight_toRightOf="parent"
             app:layout_constraintBottom_toBottomOf="parent"
+            tools:src="@drawable/ic_episode_download_ok"
             tools:ignore="ContentDescription"/>
 </android.support.constraint.ConstraintLayout>

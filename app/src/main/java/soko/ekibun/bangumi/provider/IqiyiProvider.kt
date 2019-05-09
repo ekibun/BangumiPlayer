@@ -32,17 +32,15 @@ class IqiyiProvider: BaseProvider {
         }
     }
 
-    override fun getVideoInfo(info: ProviderInfo, video: Episode): retrofit2.Call<BaseProvider.VideoInfo> {
-        return ApiHelper.buildHttpCall("http://mixer.video.iqiyi.com/jp/mixin/videos/avlist?albumId=${info.id}&page=${(video.sort + info.offset).toInt()/100 + 1}&size=100", header){
-            var json = it.body()?.string()?:""
-            if (json.startsWith("var"))
-                json = json.substring(json.indexOf('{'), json.lastIndexOf('}') + 1)
-            JsonUtil.toJsonObject(json).getAsJsonArray("mixinVideos").map{it.asJsonObject}.forEach {
+    override fun getVideoInfo(info: ProviderInfo, video: Episode): Call<BaseProvider.VideoInfo> {
+        return ApiHelper.buildHttpCall("https://pcw-api.iqiyi.com/albums/album/avlistinfo?aid=${info.id}&page=${(video.sort + info.offset).toInt()/100 + 1}&size=100", header){
+            val json = it.body()?.string()?:""
+            JsonUtil.toJsonObject(json).getAsJsonObject("data").getAsJsonArray("epsodelist").map{it.asJsonObject}.forEach {
                 if(it.get("order").asInt.toFloat() == video.sort + info.offset){
                     val videoInfo = BaseProvider.VideoInfo(
                             it.get("tvId").asString,
                             siteId,
-                            it.get("url").asString
+                            it.get("playUrl").asString
                     )
                     Log.v("video", videoInfo.toString())
                     return@buildHttpCall videoInfo
@@ -51,7 +49,7 @@ class IqiyiProvider: BaseProvider {
         }
     }
 
-    override fun getDanmakuKey(video: BaseProvider.VideoInfo): retrofit2.Call<String> {
+    override fun getDanmakuKey(video: BaseProvider.VideoInfo): Call<String> {
         return ApiHelper.buildCall { "OK" }
     }
 

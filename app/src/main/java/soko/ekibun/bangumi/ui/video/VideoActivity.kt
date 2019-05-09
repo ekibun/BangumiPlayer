@@ -26,6 +26,7 @@ import android.view.animation.AnimationUtils
 import android.webkit.CookieManager
 import android.webkit.WebView
 import android.widget.Toast
+import com.oushangfeng.pinnedsectionitemdecoration.PinnedHeaderItemDecoration
 import kotlinx.android.synthetic.main.subject_episode.*
 import kotlinx.android.synthetic.main.subject_episode.view.*
 import soko.ekibun.bangumi.api.bangumi.Bangumi
@@ -56,13 +57,12 @@ class VideoActivity : SwipeBackActivity() {
             cookieManager.setCookie(Bangumi.SERVER, it)
         }
 
-        ThemeModel.setTheme(this, ThemeModel(Bridge.getContext(this)).getTheme())
         setSupportActionBar(toolbar)
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
 
         systemUIPresenter.init()
 
-        videoPagerAdapter.init(JsonUtil.toEntity(intent.getStringExtra(VideoActivity.EXTRA_SUBJECT), Subject::class.java)!!)
+        videoPagerAdapter.init(JsonUtil.toEntity(intent.getStringExtra(EXTRA_SUBJECT), Subject::class.java)!!)
 
         val swipeTouchListener = View.OnTouchListener{ v, _ ->
             if((v as? RecyclerView)?.canScrollHorizontally(1) == true || (v as? RecyclerView)?.canScrollHorizontally(-1) == true)
@@ -73,6 +73,7 @@ class VideoActivity : SwipeBackActivity() {
         videoPagerAdapter.subjectFragment.detail.season_list.setOnTouchListener(swipeTouchListener)
 
         episode_detail_list.adapter = videoPagerAdapter.subjectFragment.episodeDetailAdapter
+        episode_detail_list.addItemDecoration(PinnedHeaderItemDecoration.Builder(videoPagerAdapter.subjectFragment.episodeDetailAdapter.sectionHeader).create())
         episode_detail_list.layoutManager = LinearLayoutManager(this)
 
         item_close.setOnClickListener {

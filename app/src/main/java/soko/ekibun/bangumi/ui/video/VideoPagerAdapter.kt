@@ -140,7 +140,7 @@ class VideoPagerAdapter(private val context: VideoActivity, fragmentManager: Fra
             if(ret.size > 1){
                 subjectFragment.seasonAdapter.setNewData(ret.distinct())
                 subjectFragment.seasonAdapter.currentId = bgmIp.id
-                subjectFragment.seasonlayoutManager.scrollToPositionWithOffset(subjectFragment.seasonAdapter.data.indexOfFirst { it.id == bgmIp.id }, 0)
+                subjectFragment.seasonLayoutManager.scrollToPositionWithOffset(subjectFragment.seasonAdapter.data.indexOfFirst { it.id == bgmIp.id }, 0)
             }
         }, {}))
     }
